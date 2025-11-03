@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="AutoImportSettings">
-    <option name="autoReloadType" value="SELECTIVE" />
-  </component>
   <component name="ChangeListManager">
-    <list default="true" id="f4183b70-366a-4877-979f-9ccde3ee322f" name="변경" comment="">
+    <list default="true" id="4cac5879-15bf-4348-911f-116ef5315342" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -16,9 +14,10 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
   "associatedIndex": 6
 }]]></component>
-  <component name="ProjectId" id="34xNDsbDptND3hDMUdptktO08KL" />
+  <component name="ProjectId" id="34xnQ8geA6zZJ1LBHMpMnQc0FcB" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -27,12 +26,8 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/222/Doran_Project",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+    "git-widget-placeholder": "main"
   }
 }]]></component>
   <component name="SharedIndexes">
@@ -44,11 +39,11 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="디폴트 작업">
-      <changelist id="f4183b70-366a-4877-979f-9ccde3ee322f" name="변경" comment="" />
-      <created>1762151149619</created>
+      <changelist id="4cac5879-15bf-4348-911f-116ef5315342" name="변경" comment="" />
+      <created>1762164075741</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1762151149619</updated>
+      <updated>1762164075741</updated>
     </task>
     <servers />
   </component>
