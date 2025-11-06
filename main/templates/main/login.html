@@ -1,81 +1,38 @@
 {% extends 'main/base.html' %}
+{% load static %}
 
 {% block content %}
-<style>
-    .form-wrapper {
-        width: 100%;
-        max-width: 380px;
-        background-color: #FFFFFF;
-        border: 1px solid #DBDBDB;
-        padding: 40px;
-        margin: 40px auto;
-        border-radius: 3px;
-        text-align: center;
-    }
-    .form-wrapper .logo-font {
-        font-family: 'Satisfy', cursive;
-        font-size: 36px;
-        color: #262626;
-        margin-bottom: 20px;
-    }
-    .form-wrapper h2 {
-        margin-top: 0;
-        margin-bottom: 30px;
-        font-size: 17px;
-        font-weight: 600;
-        color: #8e8e8e;
-    }
-    .form-field {
-        margin-bottom: 10px;
-    }
-    .form-field input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #DBDBDB;
-        border-radius: 3px;
-        background-color: #FAFAFA;
-        font-size: 14px;
-    }
-    .form-field input:focus {
-        outline: none;
-        border-color: #A8A8A8;
-    }
-    .form-button {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-        background-color: #FBC02D;
-        color: #FFFFFF;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        margin-top: 15px;
-    }
-    .form-button:hover {
-        background-color: #F9A825;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'main/css/login.css' %}">
 
 <div class="form-wrapper">
     <div class="logo-font">Doran</div>
-    <form method="post">
+    <form method="post" class="login-form">
         {% csrf_token %}
-        <div class="form-field">
-            {{ form.username }}
-        </div>
-        <div class="form-field">
-            {{ form.password }}
-        </div>
         
         {% if form.errors %}
-            <div style="color: red; font-size: 13px; margin-top: 15px;">
+            <div class="error-message">
                 <p>아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.</p>
             </div>
         {% endif %}
 
+        <div class="form-field">
+            <label for="{{ form.username.id_for_label }}" class="visually-hidden">{{ form.username.label }}</label>
+            {{ form.username }}
+        </div>
+        <div class="form-field">
+            <label for="{{ form.password.id_for_label }}" class="visually-hidden">{{ form.password.label }}</label>
+            {{ form.password }}
+        </div>
+        
         <button type="submit" class="form-button">로그인</button>
     </form>
+
+    <div class="extra-links">
+        <a href="#">비밀번호를 잊으셨나요?</a>
+    </div>
+</div>
+
+<div class="signup-link-wrapper">
+    <p>계정이 없으신가요? <a href="{% url 'signup' %}">회원가입</a></p>
 </div>
 {% endblock %}

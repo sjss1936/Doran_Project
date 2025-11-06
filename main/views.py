@@ -141,10 +141,3 @@ def profile(request):
         'posts': posts
     }
     return render(request, 'main/profile.html', context)
-
-def login_view(request):
-    return render(request, 'main/login.html')
-
-def signup_view(request):
-    return render(request, 'main/signup.html')
-    return render(request, 'main/profile.html')
