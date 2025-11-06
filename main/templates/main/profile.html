@@ -1,5 +1,88 @@
 {% extends 'main/base.html' %}
+{% load static %}
 
 {% block content %}
-<h1>프로필</h1>
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="cover-photo">
+            <img src="{% static 'main/img/bb.jpg' %}" alt="Cover Photo">
+        </div>
+        <div class="profile-info">
+            <div class="profile-picture">
+                <img src="{% static 'main/img/user1.png' %}" alt="Profile Picture">
+            </div>
+            <div class="user-details">
+                <h1>{{ user.name }}</h1>
+                <p>여기에 자기소개를 넣어주세요.</p>
+            </div>
+        </div>
+        <div class="profile-nav">
+            <ul>
+                <li><a href="#" class="active">타임라인</a></li>
+                <li><a href="#">정보</a></li>
+                <li><a href="#">친구</a></li>
+                <li><a href="#">사진</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="profile-content">
+        <div class="profile-posts">
+            <!-- Post creation form -->
+            <div class="post-create">
+                <textarea placeholder="지금 무슨 생각을 하고 계신가요?"></textarea>
+                <button>게시</button>
+            </div>
+            <!-- Posts feed -->
+            <div class="posts-feed">
+                {% for post in posts %}
+                <div class="post">
+                    <div class="post-header">
+                        <img src="{% static 'main/img/user1.png' %}" alt="User Profile Picture">
+                        <span>{{ post.user.username }}</span>
+                    </div>
+                    <div class="post-content">
+                        <p>{{ post.caption }}</p>
+                        <img src="{{ post.image.url }}" alt="Post Image">
+                    </div>
+                    <div class="post-actions">
+                        <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
+                        <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
+                        <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
+                    </div>
+                    <div class="likes" id="likes-count-{{ post.id }}">
+                        <span>{{ post.likes.count }} likes</span>
+                    </div>
+                    <div class="comments">
+                        {% for comment in post.comments.all %}
+                            <p><span>{{ comment.user.username }}</span> {{ comment.text }}</p>
+                        {% endfor %}
+                    </div>
+                    <div class="comment-form">
+                        <form action="{% url 'add_comment' post.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="text" name="text" placeholder="댓글 달기...">
+                            <button type="submit">게시</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.like-btn').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.dataset.postId;
+            fetch(`/post/${postId}/like/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
+            })
+        })
+    })
+</script>
 {% endblock %}
+

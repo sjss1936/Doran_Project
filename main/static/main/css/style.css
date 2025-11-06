@@ -141,6 +141,8 @@ body {
 .post-header img {
     border-radius: 50%;
     margin-right: 10px;
+    width: 32px;
+    height: 32px;
 }
 
 .post-image img {
@@ -211,3 +213,107 @@ body {
     text-decoration: underline;
     color: #FBC02D;
 }
+
+/* Profile Page Styles */
+.profile-container {
+    max-width: 935px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    background-color: #fff;
+    border: 1px solid #efefef;
+    margin-bottom: 20px;
+}
+
+.cover-photo img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #efefef;
+}
+
+.profile-picture img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    margin-top: -75px; /* Pulls the profile picture up */
+}
+
+.user-details {
+    margin-left: 20px;
+}
+
+.user-details h1 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.user-details p {
+    margin: 5px 0 0;
+    color: #8e8e8e;
+}
+
+.profile-nav ul {
+    list-style: none;
+    padding: 0 20px;
+    margin: 0;
+    display: flex;
+}
+
+.profile-nav li a {
+    display: block;
+    padding: 15px;
+    text-decoration: none;
+    color: #262626;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+}
+
+.profile-nav li a.active {
+    border-bottom-color: #FBC02D;
+    color: #FBC02D;
+}
+
+.profile-content {
+    display: flex;
+    gap: 20px;
+}
+
+.profile-posts {
+    flex-grow: 1;
+}
+
+.post-create {
+    background-color: #fff;
+    border: 1px solid #efefef;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.post-create textarea {
+    width: 100%;
+    border: none;
+    resize: none;
+    height: 80px;
+    font-size: 16px;
+}
+
+.post-create button {
+    background-color: #FBC02D;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    float: right;
+    margin-top: 10px;
+}
+
