@@ -1,5 +1,9 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<h1>만들기</h1>
+<h1>새 게시물 만들기</h1>
+<hr>
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %} {{ form.as_p }} <button type="submit">업로드</button>
+</form>
 {% endblock %}

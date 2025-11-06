@@ -20,10 +20,11 @@
     {% for post in posts %}
     <div class="post">
         <div class="post-header">
-            <span>{{ post.username }}</span>
+            <img class="profile-picture" src="{% static 'main/img/user1.png' %}" alt="{{ post.author.username }} profile">
+            <span>{{ post.author.username }}</span>
         </div>
         <div class="post-image">
-            <img src="{{ post.image_url }}" alt="{{ post.caption }}">
+            <img src="{{ post.image.url }}" alt="{{ post.caption }}">
         </div>
         <div class="post-footer">
             <div class="actions">
@@ -32,10 +33,10 @@
                 <img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon">
             </div>
             <div class="likes">
-                <span>{{ post.likes }} likes</span>
+                <span>0 likes</span>
             </div>
             <div class="caption">
-                <p><span>{{ post.username }}</span> {{ post.caption }}</p>
+                <p><span>{{ post.author.username }}</span> {{ post.caption }}</p>
             </div>
         </div>
     </div>
