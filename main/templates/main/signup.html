@@ -1,5 +1,152 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<h1>회원가입</h1>
+<style>
+    .form-wrapper {
+        width: 100%;
+        max-width: 380px;
+        background-color: #FFFFFF;
+        border: 1px solid #DBDBDB;
+        padding: 40px;
+        margin: 40px auto;
+        border-radius: 3px;
+        text-align: center;
+    }
+    .form-wrapper .logo-font {
+        font-family: 'Satisfy', cursive;
+        font-size: 36px;
+        color: #262626;
+        margin-bottom: 15px;
+    }
+    .form-wrapper h2 {
+        margin-top: 0;
+        margin-bottom: 25px;
+        font-size: 17px;
+        font-weight: 600;
+        color: #8e8e8e;
+        line-height: 1.4;
+    }
+    .form-field {
+        margin-bottom: 10px;
+    }
+    .form-field input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #DBDBDB;
+        border-radius: 3px;
+        background-color: #FAFAFA;
+        font-size: 14px;
+    }
+    .form-field input:focus {
+        outline: none;
+        border-color: #A8A8A8;
+    }
+    .form-button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background-color: #FBC02D;
+        color: #FFFFFF;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-top: 15px;
+    }
+    .form-button:hover {
+        background-color: #F9A825;
+    }
+    .check-username-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .check-username-group input {
+        flex-grow: 1;
+    }
+    #check-username-btn {
+        padding: 0 15px;
+        border: 1px solid #DBDBDB;
+        border-radius: 3px;
+        background-color: #FAFAFA;
+        cursor: pointer;
+        font-size: 14px;
+        white-space: nowrap;
+        transition: background-color 0.2s ease;
+    }
+    #check-username-btn:hover {
+        background-color: #EFEFEF;
+    }
+    #username-check-message {
+        text-align: left;
+        margin-bottom: 10px;
+        font-size: 13px;
+        height: 15px; /* Reserve space to prevent layout shift */
+    }
+</style>
+
+<div class="form-wrapper">
+    <div class="logo-font">Doran</div>
+    <h2>친구들의 사진과 동영상을 보려면 가입하세요.</h2>
+
+    <form method="post" id="signup-form" novalidate>
+        {% csrf_token %}
+
+        <div class="check-username-group">
+            {{ form.username }}
+            <button type="button" id="check-username-btn">중복 확인</button>
+        </div>
+        <div id="username-check-message"></div>
+        {% if form.username.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.username.errors }}</div>{% endif %}
+
+        <div class="form-field">
+            {{ form.email }}
+        </div>
+        {% if form.email.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.email.errors }}</div>{% endif %}
+
+        <div class="form-field">
+            {{ form.password1 }}
+        </div>
+        {% if form.password1.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.password1.errors }}</div>{% endif %}
+
+        <div class="form-field">
+            {{ form.password2 }}
+        </div>
+        {% if form.password2.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.password2.errors }}</div>{% endif %}
+
+        {% if form.non_field_errors %}
+            <div style="color: red; font-size: 13px; margin-top: 15px;">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <button type="submit" class="form-button">가입하기</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const checkBtn = document.getElementById("check-username-btn");
+    const usernameInput = document.querySelector("[name='username']");
+    const messageDiv = document.getElementById('username-check-message');
+
+    checkBtn.addEventListener('click', function() {
+        const username = usernameInput.value;
+
+        if (username.length === 0) {
+            messageDiv.innerHTML = '<span style="color: orange;">아이디를 입력해주세요.</span>';
+            return;
+        }
+
+        fetch(`/check_username/?username=${username}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_taken) {
+                    messageDiv.innerHTML = '<span style="color: red;">이미 사용 중인 아이디입니다.</span>';
+                } else {
+                    messageDiv.innerHTML = '<span style="color: green;">사용 가능한 아이디입니다.</span>';
+                }
+            });
+    });
+});
+</script>
 {% endblock %}

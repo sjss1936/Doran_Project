@@ -1,0 +1,7 @@
+안녕하세요, {{ user.username }}님.
+
+아래 링크를 클릭하여 Doran 계정을 활성화해주세요.
+
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+
+감사합니다.

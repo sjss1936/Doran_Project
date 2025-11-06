@@ -1,5 +1,81 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<h1>로그인</h1>
+<style>
+    .form-wrapper {
+        width: 100%;
+        max-width: 380px;
+        background-color: #FFFFFF;
+        border: 1px solid #DBDBDB;
+        padding: 40px;
+        margin: 40px auto;
+        border-radius: 3px;
+        text-align: center;
+    }
+    .form-wrapper .logo-font {
+        font-family: 'Satisfy', cursive;
+        font-size: 36px;
+        color: #262626;
+        margin-bottom: 20px;
+    }
+    .form-wrapper h2 {
+        margin-top: 0;
+        margin-bottom: 30px;
+        font-size: 17px;
+        font-weight: 600;
+        color: #8e8e8e;
+    }
+    .form-field {
+        margin-bottom: 10px;
+    }
+    .form-field input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #DBDBDB;
+        border-radius: 3px;
+        background-color: #FAFAFA;
+        font-size: 14px;
+    }
+    .form-field input:focus {
+        outline: none;
+        border-color: #A8A8A8;
+    }
+    .form-button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background-color: #FBC02D;
+        color: #FFFFFF;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-top: 15px;
+    }
+    .form-button:hover {
+        background-color: #F9A825;
+    }
+</style>
+
+<div class="form-wrapper">
+    <div class="logo-font">Doran</div>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-field">
+            {{ form.username }}
+        </div>
+        <div class="form-field">
+            {{ form.password }}
+        </div>
+        
+        {% if form.errors %}
+            <div style="color: red; font-size: 13px; margin-top: 15px;">
+                <p>아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.</p>
+            </div>
+        {% endif %}
+
+        <button type="submit" class="form-button">로그인</button>
+    </form>
+</div>
 {% endblock %}
