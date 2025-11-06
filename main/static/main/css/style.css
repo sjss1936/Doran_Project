@@ -1,0 +1,213 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #FFFFFF;
+    margin: 0;
+}
+
+.container {
+    display: flex;
+}
+
+.sidebar {
+    width: 180px;
+    border-right: 1px solid #efefef;
+    padding: 20px;
+    height: 100vh;
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.logo h1 {
+    font-family: 'Satisfy', cursive; /* A font similar to Instagram's logo */
+    font-size: 28px;
+    margin: 0;
+    color: #FBC02D;
+}
+
+.nav ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 30px;
+}
+
+.nav li {
+    margin-bottom: 25px;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #262626;
+    font-size: 16px;
+    display: block;
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.nav a:hover {
+    background-color: #FFFBE0;
+    color: #FBC02D;
+}
+
+.nav a.active {
+    background-color: #FFFBE0;
+    color: #FBC02D;
+}
+
+.nav a i {
+    margin-right: 15px;
+    font-size: 22px;
+}
+
+.nav-icon {
+    width: 22px; /* Adjust size as needed */
+    height: 22px; /* Adjust size as needed */
+    margin-right: 15px;
+    vertical-align: middle; /* Align with text */
+}
+
+.main-content {
+    margin-left: 180px; /* Same as sidebar width */
+    padding: 20px;
+    width: calc(100% - 180px);
+}
+
+.stories {
+    display: flex;
+    padding: 10px 0;
+    border: 1px solid #efefef;
+    background-color: #fff;
+    margin-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.story {
+    text-align: center;
+    margin: 0 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.story img {
+    border: 2px solid #FBC02D;
+}
+
+.story-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px; /* Slightly rounded corners for square stories */
+}
+
+.profile-picture {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+
+.feed {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: 614px; /* Instagram's typical post width */
+    margin: 0 auto;
+}
+
+.post {
+    border: 1px solid #efefef;
+    background-color: #fff;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); /* Subtle shadow */
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    font-weight: 600;
+}
+
+.post-header span {
+    margin-left: 10px;
+}
+
+.post-header img {
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.post-image img {
+    width: 100%;
+    display: block; /* Remove extra space below image */
+    object-fit: cover; /* Ensure image covers the area without distortion */
+}
+
+.post-footer {
+    padding: 0 10px 10px 10px; /* Top, Right, Bottom, Left */
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-start; /* Align icons to the left */
+    gap: 15px; /* Space between icons */
+    margin-bottom: 10px;
+}
+
+.actions i {
+    /* Removed as we are using image icons */
+}
+
+.actions i:hover {
+    /* Removed as we are using image icons */
+}
+
+.action-icon {
+    width: 24px; /* Adjust size as needed */
+    height: 24px; /* Adjust size as needed */
+    cursor: pointer;
+    transition: transform 0.2s ease; /* Add a subtle hover effect */
+}
+
+.action-icon:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+.likes {
+    font-weight: 600;
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.caption {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.caption span {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.auth-links {
+    padding: 20 15px;
+    display: flex;
+    gap: 25px; /* Space between links */
+}
+
+.auth-links a {
+    font-size: 15px;
+    color: #8e8e8e;
+    text-decoration: none;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+    color: #FBC02D;
+}

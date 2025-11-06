@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doran</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <h1>Doran</h1>
+            </div>
+            <div class="nav">
+                <ul>
+                    <li><a href="{% url 'index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}"><img src="{% static 'main/img/home.png' %}" alt="홈" class="nav-icon"> 홈</a></li>
+                    <li><a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}"><img src="{% static 'main/img/search.png' %}" alt="검색" class="nav-icon"> 검색</a></li>
+                    <li><a href="{% url 'messages' %}" class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}"><img src="{% static 'main/img/message.png' %}" alt="메시지" class="nav-icon"> 메시지</a></li>
+                    <li><a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}"><img src="{% static 'main/img/alarm.png' %}" alt="알림" class="nav-icon"> 알림</a></li>
+                    <li><a href="{% url 'create' %}" class="{% if request.resolver_match.url_name == 'create' %}active{% endif %}"><img src="{% static 'main/img/create.png' %}" alt="만들기" class="nav-icon"> 만들기</a></li>
+                    <li><a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}"><img src="{% static 'main/img/profile.png' %}" alt="프로필" class="nav-icon"> 프로필</a></li>
+                </ul>
+            </div>
+            <div class="auth-links">
+                <a href="{% url 'login' %}">로그인</a>
+                <a href="{% url 'signup' %}">회원가입</a>
+            </div>
+        </div>
+        </div>
+        <div class="main-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script> <!-- IMPORTANT: Replace with your actual Font Awesome kit URL -->
+</body>
+</html>

@@ -1,0 +1,45 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="stories">
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김태관">
+        <span>김태관</span>
+    </div>
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="손재성">
+        <span>손재성</span>
+    </div>
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김기원">
+        <span>김기원</span>
+    </div>
+</div>
+<div class="feed">
+    {% for post in posts %}
+    <div class="post">
+        <div class="post-header">
+            <img class="profile-picture" src="{{ post.profile_picture }}" alt="{{ post.username }} profile">
+            <span>{{ post.username }}</span>
+        </div>
+        <div class="post-image">
+            <img src="{{ post.image_url }}" alt="{{ post.caption }}">
+        </div>
+        <div class="post-footer">
+            <div class="actions">
+                <img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon">
+                <img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon">
+                <img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon">
+            </div>
+            <div class="likes">
+                <span>{{ post.likes }} likes</span>
+            </div>
+            <div class="caption">
+                <p><span>{{ post.username }}</span> {{ post.caption }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
