@@ -295,6 +295,24 @@ body {
     margin-right: 4px;
 }
 
+.edit-profile-btn {
+    background-color: #FBC02D; /* A distinct color for the button */
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none; /* Remove underline from link */
+    display: inline-block; /* Allow padding and other button styles */
+    margin-top: 15px; /* Space from bio/follow stats */
+    transition: background-color 0.2s ease;
+}
+
+.edit-profile-btn:hover {
+    background-color: #E6A700; /* Darker shade on hover */
+}
+
 .profile-nav-x ul {
     list-style: none;
     padding: 0;

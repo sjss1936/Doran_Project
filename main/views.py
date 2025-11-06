@@ -42,7 +42,7 @@ def create(request):
             post = form.save(commit=False)
             post.user = request.user
             post.save()
-            return redirect('profile')
+            return redirect('my_profile')
     else:
         form = PostForm()
     return render(request, 'main/create.html', {'form': form})
@@ -56,7 +56,7 @@ def profile(request):
 @login_required
 def edit_profile(request):
     if request.method == 'POST':
-        form = ProfileEditForm(request.POST, instance=request.user)
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, '프로필이 성공적으로 업데이트되었습니다.')

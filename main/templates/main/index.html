@@ -1,5 +1,6 @@
 {% extends 'main/base.html' %}
 {% load static %}
+{% load main_filters %}
 
 {% block content %}
 <div class="stories">
@@ -20,7 +21,7 @@
     {% for post in posts %}
     <div class="post">
         <div class="post-header">
-            <img class="profile-picture" src="{% static 'main/img/user1.png' %}" alt="{{ post.user.username }} profile">
+            <img class="profile-picture" src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ post.user.username }} profile">
             <span>{{ post.user.username }}</span>
         </div>
         <div class="post-image">
@@ -37,12 +38,12 @@
             </div>
             <div class="comments">
                 {% if post.comments.all %}
-                    <p><span>{{ post.comments.first.user.username }}</span> {{ post.comments.first.text }}</p>
+                    <p><span>{{ post.comments.first.user.username }}</span> {{ post.comments.first.text }} - <small>{{ post.comments.first.created_at|time_ago }}</small></p>
                     {% if post.comments.count > 1 %}
                         <a href="#" class="view-all-comments" data-post-id="{{ post.id }}" data-comment-count="{{ post.comments.count }}">모든 댓글 보기 ({{ post.comments.count }}개)</a>
                         <div id="hidden-comments-{{ post.id }}" style="display: none;">
                             {% for comment in post.comments.all|slice:"1:" %}
-                                <p><span>{{ comment.user.username }}</span> {{ comment.text }}</p>
+                                <p><span>{{ comment.user.username }}</span> {{ comment.text }} - <small>{{ comment.created_at|time_ago }}</small></p>
                             {% endfor %}
                         </div>
                     {% endif %}
