@@ -22,3 +22,12 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = ['image', 'caption']
+
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['name', 'bio']
+        labels = {
+            'name': '이름',
+            'bio': '자기소개',
+        }

@@ -7,31 +7,31 @@
         <div class="cover-photo">
             <img src="{% static 'main/img/bb.jpg' %}" alt="Cover Photo">
         </div>
-        <div class="profile-info">
-            <div class="profile-picture">
-                <img src="{% static 'main/img/user1.png' %}" alt="Profile Picture">
+        <div class="profile-header-content">
+            <div class="profile-picture-wrapper">
+                <img class="profile-picture-x" src="{% static 'main/img/user1.png' %}" alt="Profile Picture">
             </div>
-            <div class="user-details">
-                <h1>{{ user.name }}</h1>
-                <p>여기에 자기소개를 넣어주세요.</p>
-            </div>
-        </div>
-        <div class="profile-nav">
+                            <div class="user-details-x">
+                                <h1>{{ user.name }}</h1>
+                                <p class="username-handle">@{{ user.username }}</p>
+                                <p class="user-bio">{{ user.bio|default:"여기에 자기소개를 넣어주세요." }}</p>
+                                <div class="follow-stats">
+                                    <span><b>0</b> 팔로잉</span>
+                                    <span><b>0</b> 팔로워</span>
+                                </div>
+                                <a href="{% url 'edit_profile' %}" class="edit-profile-btn">프로필 수정</a>
+                            </div>        </div>
+        <div class="profile-nav-x">
             <ul>
-                <li><a href="#" class="active">타임라인</a></li>
-                <li><a href="#">정보</a></li>
-                <li><a href="#">친구</a></li>
-                <li><a href="#">사진</a></li>
+                <li><a href="#" class="active">게시물</a></li>
+                <li><a href="#">답글</a></li>
+                <li><a href="#">미디어</a></li>
+                <li><a href="#">좋아요</a></li>
             </ul>
         </div>
     </div>
     <div class="profile-content">
         <div class="profile-posts">
-            <!-- Post creation form -->
-            <div class="post-create">
-                <textarea placeholder="지금 무슨 생각을 하고 계신가요?"></textarea>
-                <button>게시</button>
-            </div>
             <!-- Posts feed -->
             <div class="posts-feed">
                 {% for post in posts %}
@@ -40,29 +40,38 @@
                         <img src="{% static 'main/img/user1.png' %}" alt="User Profile Picture">
                         <span>{{ post.user.username }}</span>
                     </div>
-                    <div class="post-content">
-                        <p>{{ post.caption }}</p>
+                    <div class="post-image">
                         <img src="{{ post.image.url }}" alt="Post Image">
                     </div>
-                    <div class="post-actions">
-                        <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
-                        <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
-                        <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
-                    </div>
-                    <div class="likes" id="likes-count-{{ post.id }}">
-                        <span>{{ post.likes.count }} likes</span>
-                    </div>
-                    <div class="comments">
-                        {% for comment in post.comments.all %}
-                            <p><span>{{ comment.user.username }}</span> {{ comment.text }}</p>
-                        {% endfor %}
-                    </div>
-                    <div class="comment-form">
-                        <form action="{% url 'add_comment' post.id %}" method="post">
-                            {% csrf_token %}
-                            <input type="text" name="text" placeholder="댓글 달기...">
-                            <button type="submit">게시</button>
-                        </form>
+                    <div class="post-footer">
+                        <div class="post-actions">
+                            <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
+                            <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
+                            <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
+                        </div>
+                        <div class="likes" id="likes-count-{{ post.id }}">
+                            <span>{{ post.likes.count }} likes</span>
+                        </div>
+                        <div class="comments">
+                            {% if post.comments.all %}
+                                <p><span>{{ post.comments.first.user.username }}</span> {{ post.comments.first.text }}</p>
+                                {% if post.comments.count > 1 %}
+                                    <a href="#" class="view-all-comments" data-post-id="{{ post.id }}">모든 댓글 보기 ({{ post.comments.count }}개)</a>
+                                    <div id="hidden-comments-{{ post.id }}" style="display: none;">
+                                        {% for comment in post.comments.all|slice:"1:" %}
+                                            <p><span>{{ comment.user.username }}</span> {{ comment.text }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="comment-form">
+                            <form action="{% url 'add_comment' post.id %}" method="post">
+                                {% csrf_token %}
+                                <input type="text" name="text" placeholder="댓글 달기...">
+                                <button type="submit">게시</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -81,6 +90,32 @@
             .then(data => {
                 document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
             })
+        })
+    })
+
+    document.querySelectorAll('.view-all-comments').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.dataset.postId;
+            let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
+            if (hiddenCommentsDiv.style.display === 'none') {
+                hiddenCommentsDiv.style.display = 'block';
+                event.currentTarget.innerText = '댓글 숨기기';
+            } else {
+                hiddenCommentsDiv.style.display = 'none';
+                event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount}개)`;
+            }
+        })
+    })
+
+    document.querySelectorAll('.post-actions a:nth-child(2)').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.closest('.post').querySelector('.like-btn').dataset.postId;
+            let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
+            if (viewAllCommentsLink) {
+                viewAllCommentsLink.click(); // Simulate click on 'View all comments' link
+            }
         })
     })
 </script>

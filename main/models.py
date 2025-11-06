@@ -5,6 +5,7 @@ class User(AbstractUser):
     name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     email = models.EmailField(unique=True)
+    bio = models.TextField(blank=True, null=True)
 
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')

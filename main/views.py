@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model, login, authenticate, logout
 from django.shortcuts import render, redirect
-from .forms import CustomUserCreationForm, PostForm
+from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
 from .models import Post, Comment, Like
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -52,6 +52,18 @@ def profile(request):
     posts = request.user.posts.all()
     context = {'user': request.user, 'posts': posts}
     return render(request, 'main/profile.html', context)
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '프로필이 성공적으로 업데이트되었습니다.')
+            return redirect('profile')
+    else:
+        form = ProfileEditForm(instance=request.user)
+    return render(request, 'main/edit_profile.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':
