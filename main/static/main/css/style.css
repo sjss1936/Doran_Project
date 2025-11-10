@@ -307,5 +307,71 @@ div.profile-picture {
 }
 
 .profile-posts {
+
     padding: 20px;
+
 }
+
+
+
+/* Page-specific overrides for messages page */
+
+body.messages-page {
+
+    display: flex;
+
+    flex-direction: row; /* Sidebar and main content side-by-side */
+
+    height: 100vh; /* Fill the entire viewport height */
+
+    overflow: hidden; /* Prevent body scrollbars */
+
+    margin: 0; /* Ensure no default body margin */
+
+}
+
+
+
+.messages-page .container {
+
+    display: flex; /* Keep container as flex to manage sidebar and main-content */
+
+    flex-grow: 1; /* Allow container to fill remaining width */
+
+    height: 100%; /* Fill height of body */
+
+}
+
+
+
+.messages-page .sidebar {
+
+    width: 180px; /* Keep fixed width */
+
+    height: 100%; /* Fill height of container */
+
+    position: static; /* Remove fixed positioning */
+
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+
+}
+
+
+
+.messages-page .main-content {
+
+    padding: 0;
+
+    height: 100%; /* Fill height of container */
+
+    margin-left: 0; /* Remove margin as flex handles spacing */
+
+    flex-grow: 1; /* Allow main-content to fill remaining width */
+
+    width: auto; /* Let flexbox determine width */
+
+}
+
+
+
+

@@ -1,5 +1,151 @@
 {% extends 'main/base.html' %}
+{% load static %}
+
+{% block body_class %}messages-page{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'main/css/messages_instagram.css' %}">
+{% endblock %}
 
 {% block content %}
-<h1>메시지</h1>
+<div class="messages-container">
+    <div class="conversations-list">
+        <div class="list-header">
+            <h2>Messages</h2>
+        </div>
+        <div class="user-list">
+            {% for u in users %}
+                {% if u.username != request.user.username %}
+                <div class="user-item" data-username="{{ u.username }}">
+                    <img src="{% static 'main/img/user1.png' %}" alt="{{ u.username }}">
+                    <div class="user-info">
+                        <strong>{{ u.username }}</strong>
+                        <span>Start a conversation</span>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    <div class="chat-window">
+        <div id="chat-placeholder" class="chat-placeholder">
+            <img src="{% static 'main/img/message.png' %}" alt="Messages">
+            <h2>Your Messages</h2>
+            <p>Send private photos and messages to a friend or group.</p>
+            <button class="btn btn-primary">Send Message</button>
+        </div>
+        <div id="chat-content" class="chat-content" style="display: none;">
+            <div class="chat-header">
+                <img src="{% static 'main/img/user1.png' %}" alt="" id="chat-header-img">
+                <strong id="chat-header-username"></strong>
+            </div>
+            <div id="chat-log" class="chat-log"></div>
+            <div class="chat-input-form">
+                <input id="chat-message-input" type="text" placeholder="Message...">
+                <button id="chat-message-submit">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ request.user.username|json_script:"user_username" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const userItems = document.querySelectorAll('.user-item');
+    const chatWindow = document.querySelector('.chat-window');
+    const chatPlaceholder = document.getElementById('chat-placeholder');
+    const chatContent = document.getElementById('chat-content');
+    const chatLog = document.getElementById('chat-log');
+    const chatMessageInput = document.getElementById('chat-message-input');
+    const chatMessageSubmit = document.getElementById('chat-message-submit');
+    const chatHeaderUsername = document.getElementById('chat-header-username');
+    const userUsername = JSON.parse(document.getElementById('user_username').textContent);
+
+    let currentSocket = null;
+    let currentRoomName = null;
+
+    userItems.forEach(item => {
+        item.addEventListener('click', function () {
+            // Highlight active user
+            userItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+
+            const otherUsername = this.dataset.username;
+            chatHeaderUsername.textContent = otherUsername;
+
+            // Show chat content, hide placeholder
+            chatPlaceholder.style.display = 'none';
+            chatContent.style.display = 'flex';
+            chatLog.innerHTML = ''; // Clear previous chat logs
+
+            // Create room name
+            const usernames = [userUsername, otherUsername].sort();
+            const roomName = `chat_${usernames[0]}_${usernames[1]}`;
+
+            if (currentRoomName === roomName) {
+                return; // Don't reconnect if it's the same chat
+            }
+            currentRoomName = roomName;
+
+            // Close previous socket if it exists
+            if (currentSocket) {
+                currentSocket.close();
+            }
+
+            // Create new WebSocket connection
+            currentSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+            );
+
+            currentSocket.onopen = function(e) {
+                console.log('WebSocket connection established for room: ' + roomName);
+                chatMessageInput.focus();
+            };
+
+            currentSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                let messageHtml = '';
+                if (data.type === 'message_history') {
+                    data.messages.forEach(msg => {
+                        messageHtml += createMessageHtml(msg.user, msg.message);
+                    });
+                } else if (data.type === 'chat_message') {
+                    messageHtml = createMessageHtml(data.message.user, data.message.message);
+                }
+                chatLog.innerHTML += messageHtml;
+                chatLog.scrollTop = chatLog.scrollHeight;
+            };
+
+            currentSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+        });
+    });
+
+    function createMessageHtml(user, message) {
+        const messageClass = user === userUsername ? 'sent' : 'received';
+        return `<div class="message ${messageClass}"><div>${message}</div></div>`;
+    }
+
+    function sendMessage() {
+        if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
+            const message = chatMessageInput.value;
+            if (message.trim() !== '') {
+                currentSocket.send(JSON.stringify({ 'message': message }));
+                chatMessageInput.value = '';
+            }
+        } else {
+            console.error('WebSocket is not connected.');
+        }
+    }
+
+    chatMessageSubmit.addEventListener('click', sendMessage);
+    chatMessageInput.addEventListener('keyup', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+});
+</script>
 {% endblock %}
