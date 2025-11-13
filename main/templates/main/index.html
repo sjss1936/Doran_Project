@@ -4,103 +4,103 @@
 
 {% block content %}
 <div class="stories">
-    <div class="story">
-        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김태관">
-        <span>김태관</span>
-    </div>
-    <div class="story">
-        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="손재성">
-        <span>손재성</span>
-    </div>
-    <div class="story">
-        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김기원">
-        <span>김기원</span>
-    </div>
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김태관">
+        <span>김태관</span>
+    </div>
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="손재성">
+        <span>손재성</span>
+    </div>
+    <div class="story">
+        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김기원">
+        <span>김기원</span>
+    </div>
 </div>
 <div class="feed">
-    {% for post in posts %}
-    <div class="post">
-        <div class="post-header">
-            <img class="profile-picture" src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ post.user.username }} profile">
-            <span>{{ post.user.username }}</span>
-        </div>
-        <div class="post-image">
-            <img src="{{ post.image.url }}" alt="{{ post.caption }}">
-        </div>
-        <div class="post-footer">
-            <div class="actions">
-                <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
-                <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
-                <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
-            </div>
-            <div class="likes" id="likes-count-{{ post.id }}">
-                <span>{{ post.likes.count }} likes</span>
-            </div>
-            <div class="caption">
-                <span>{{ post.user.username }}</span> {{ post.caption }}
-            </div>
-            <div class="comments">
-                {% if post.comments.all %}
-                    <p><span>{{ post.comments.first.user.username }}</span> {{ post.comments.first.text }} - <small>{{ post.comments.first.created_at|time_ago }}</small></p>
-                    {% if post.comments.count > 1 %}
-                        <a href="#" class="view-all-comments" data-post-id="{{ post.id }}" data-comment-count="{{ post.comments.count }}">모든 댓글 보기 ({{ post.comments.count }}개)</a>
-                        <div id="hidden-comments-{{ post.id }}" style="display: none;">
-                            {% for comment in post.comments.all|slice:"1:" %}
-                                <p><span>{{ comment.user.username }}</span> {{ comment.text }} - <small>{{ comment.created_at|time_ago }}</small></p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endif %}
-            </div>
-            <div class="comment-form">
-                <form action="{% url 'add_comment' post.id %}" method="post">
-                    {% csrf_token %}
-                    <input type="text" name="text" placeholder="댓글 달기...">
-                    <button type="submit">게시</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
+    {% for post in posts %}
+    <div class="post">
+        <div class="post-header">
+                        <img class="profile-picture" src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ post.user.username }} profile">
+            <span>{{ post.user.username }}</span>
+        </div>
+        <div class="post-image">
+            <img src="{{ post.image.url }}" alt="{{ post.caption }}">
+        </div>
+        <div class="post-footer">
+            <div class="actions">
+                <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
+                <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
+                <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
+            </div>
+            <div class="likes" id="likes-count-{{ post.id }}">
+                <span>{{ post.likes.count }} likes</span>
+            </div>
+            <div class="caption">
+                <span>{{ post.user.username }}</span> {{ post.caption }}
+            </div>
+            <div class="comments">
+                {% if post.comments.all %}
+                    <p><span>{{ post.comments.first.user.username }}</span> {{ post.comments.first.text }} - <small>{{ post.comments.first.created_at|time_ago }}</small></p>
+                    {% if post.comments.count > 1 %}
+                        <a href="#" class="view-all-comments" data-post-id="{{ post.id }}" data-comment-count="{{ post.comments.count }}">모든 댓글 보기 ({{ post.comments.count }}개)</a>
+                        <div id="hidden-comments-{{ post.id }}" style="display: none;">
+                            {% for comment in post.comments.all|slice:"1:" %}
+                                <p><span>{{ comment.user.username }}</span> {{ comment.text }} - <small>{{ comment.created_at|time_ago }}</small></p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="comment-form">
+                <form action="{% url 'add_comment' post.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="text" name="text" placeholder="댓글 달기...">
+                    <button type="submit">게시</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 
 <script>
-    document.querySelectorAll('.like-btn').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.dataset.postId;
-            fetch(`/post/${postId}/like/`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
-            })
-        })
-    })
+    document.querySelectorAll('.like-btn').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.dataset.postId;
+            fetch(`/post/${postId}/like/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
+})
+        })
+    })
 
-    document.querySelectorAll('.view-all-comments').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.dataset.postId;
-            let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
-            if (hiddenCommentsDiv.style.display === 'none') {
-                hiddenCommentsDiv.style.display = 'block';
-                event.currentTarget.innerText = '댓글 숨기기';
-            } else {
-                hiddenCommentsDiv.style.display = 'none';
-                event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount}개)`;
-            }
-        })
-    })
+    document.querySelectorAll('.view-all-comments').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.dataset.postId;
+            let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
+            if (hiddenCommentsDiv.style.display === 'none') {
+                hiddenCommentsDiv.style.display = 'block';
+                event.currentTarget.innerText = '댓글 숨기기';
+            } else {
+                hiddenCommentsDiv.style.display = 'none';
+                event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount}개)`;
+            }
+        })
+    })
 
-    document.querySelectorAll('.post-actions a:nth-child(2)').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.closest('.post').querySelector('.like-btn').dataset.postId;
-            let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
-            if (viewAllCommentsLink) {
-                viewAllCommentsLink.click(); // Simulate click on 'View all comments' link
-            }
-        })
-    })
+    document.querySelectorAll('.actions a:nth-child(2)').forEach(item => {
+        item.addEventListener('click', event => {
+            event.preventDefault();
+            let postId = event.currentTarget.closest('.post').querySelector('.like-btn').dataset.postId;
+            let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
+            if (viewAllCommentsLink) {
+                viewAllCommentsLink.click(); // Simulate click on 'View all comments' link
+            }
+        })
+    })
 </script>
 {% endblock %}
