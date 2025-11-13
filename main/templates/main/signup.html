@@ -1,5 +1,59 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<h1>회원가입</h1>
+<div class="form-container">
+    <h2>회원가입</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.username.label_tag }}
+            <div style="display: flex;">
+                {{ form.username }}
+                <button type="button" id="check-username-btn">중복체크</button>
+            </div>
+            <span id="username-check-result"></span>
+            {% if form.username.help_text %}
+                <small style="color: grey">{{ form.username.help_text }}</small>
+            {% endif %}
+            {% for error in form.username.errors %}
+                <p style="color: red;">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        {% for field in form.visible_fields %}
+            {% if field.name != 'username' %}
+                <div class="form-group">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.help_text %}
+                        <small style="color: grey">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <p style="color: red;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <button type="submit">가입하기</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('check-username-btn').addEventListener('click', function() {
+        var username = document.querySelector("[name='username']").value;
+        fetch('/check_username/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({'username': username})
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('username-check-result').innerText = data.message;
+        });
+    });
+</script>
 {% endblock %}

@@ -2,17 +2,16 @@
 
 {% block content %}
 <div class="form-container">
-    <h2>로그인</h2>
+    <h2>프로필 수정</h2>
     {% if messages %}
         {% for message in messages %}
-            <p style="color: red;">{{ message }}</p>
+            <p style="color: green;">{{ message }}</p>
         {% endfor %}
     {% endif %}
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">로그인</button>
+        <button type="submit">저장</button>
     </form>
 </div>
 {% endblock %}
-
