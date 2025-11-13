@@ -5,34 +5,42 @@
 <link rel="stylesheet" href="{% static 'main/css/login.css' %}">
 
 <div class="form-wrapper">
-    <div class="logo-font">Doran</div>
-    <form method="post" class="login-form">
-        {% csrf_token %}
-        
-        {% if form.errors %}
-            <div class="error-message">
-                <p>아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.</p>
-            </div>
-        {% endif %}
+    <div class="logo-font">Doran</div>
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        
+                {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                                        <p class="{{ message.tags }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-        <div class="form-field">
-            <label for="{{ form.username.id_for_label }}" class="visually-hidden">{{ form.username.label }}</label>
-            {{ form.username }}
-        </div>
-        <div class="form-field">
-            <label for="{{ form.password.id_for_label }}" class="visually-hidden">{{ form.password.label }}</label>
-            {{ form.password }}
-        </div>
-        
-        <button type="submit" class="form-button">로그인</button>
-    </form>
+                {% if form.errors %}
+            <div class="error-message">
+                <p>아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.</p>
+            </div>
+        {% endif %}
 
-    <div class="extra-links">
-        <a href="#">비밀번호를 잊으셨나요?</a>
-    </div>
+                <div class="form-field">
+            <label for="{{ form.username.id_for_label }}" class="visually-hidden">{{ form.username.label }}</label>
+            {{ form.username }}
+        </div>
+        <div class="form-field">
+            <label for="{{ form.password.id_for_label }}" class="visually-hidden">{{ form.password.label }}</label>
+            {{ form.password }}
+        </div>
+        
+        <button type="submit" class="form-button">로그인</button>
+    </form>
+
+    <div class="extra-links">
+        <a href="#">비밀번호를 잊으셨나요?</a>
+    </div>
 </div>
 
 <div class="signup-link-wrapper">
-    <p>계정이 없으신가요? <a href="{% url 'signup' %}">회원가입</a></p>
+    <p>계정이 없으신가요? <a href="{% url 'signup' %}">회원가입</a></p>
 </div>
 {% endblock %}

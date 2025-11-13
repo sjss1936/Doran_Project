@@ -1,5 +1,13 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<h1>만들기</h1>
+<div class="form-container">
+    <h2>새 게시물 만들기</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">게시</button>
+    </form>
+</div>
 {% endblock %}
+
