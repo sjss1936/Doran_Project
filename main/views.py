@@ -1,11 +1,10 @@
 from django.http import JsonResponse
-from django.contrib.auth import get_user_model, login, authenticate, logout
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
-from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
+from .forms import PostForm, ProfileEditForm
 from .models import Post, Comment, Like
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm
 
 User = get_user_model()
 
@@ -64,40 +63,6 @@ def edit_profile(request):
     else:
         form = ProfileEditForm(instance=request.user)
     return render(request, 'main/edit_profile.html', {'form': form})
-
-def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect('index')
-            else:
-                messages.error(request, 'Invalid username or password.')
-        else:
-            messages.error(request, 'Invalid username or password.')
-    form = AuthenticationForm()
-    return render(request, 'main/login.html', {'form': form})
-
-def signup_view(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'계정이 생성되었습니다: {username}')
-            return redirect('index')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'main/signup.html', {'form': form})
-
-def logout_view(request):
-    logout(request)
-    return redirect('index')
 
 @login_required
 def add_comment(request, post_id):
