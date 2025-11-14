@@ -1,5 +1,98 @@
 {% extends 'main/base.html' %}
+{% load static %}
+{% load main_filters %}
 
 {% block content %}
-<h1>알림</h1>
+<style>
+    .notifications-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #fff;
+        border: 1px solid #dbdbdb;
+        border-radius: 3px;
+    }
+    .notifications-header {
+        padding: 16px;
+        border-bottom: 1px solid #dbdbdb;
+    }
+    .notifications-header h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 600;
+    }
+    .notification-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #efefef;
+        transition: background-color 0.2s ease;
+    }
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+    .notification-item:hover {
+        background-color: #fafafa;
+    }
+    .notification-item img.profile-pic {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    .notification-content {
+        flex-grow: 1;
+        font-size: 14px;
+    }
+    .notification-content a {
+        font-weight: 600;
+        color: #262626;
+        text-decoration: none;
+    }
+    .notification-time {
+        font-size: 12px;
+        color: #8e8e8e;
+        margin-left: 8px;
+    }
+    .no-notifications {
+        padding: 40px;
+        text-align: center;
+        color: #8e8e8e;
+        font-size: 16px;
+    }
+</style>
+
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1>알림</h1>
+    </div>
+    {% if notifications %}
+        {% for notification in notifications %}
+            <div class="notification-item">
+                {% if notification.created_by.profile_picture %}
+                    <img src="{{ notification.created_by.profile_picture.url }}" alt="{{ notification.created_by.username }}'s profile picture" class="profile-pic">
+                {% else %}
+                    <img src="{% static 'main/img/user1.png' %}" alt="{{ notification.created_by.username }}'s profile picture" class="profile-pic">
+                {% endif %}
+                <div class="notification-content">
+                    <a href="{% url 'user_profile' username=notification.created_by.username }}">{{ notification.created_by.username }}</a>
+                    {% if notification.notification_type == 'like' %}
+                        님이 회원님의 게시물을 좋아합니다.
+                    {% elif notification.notification_type == 'comment' %}
+                        님이 댓글을 남겼습니다: "{{ notification.comment.text|truncatechars:20 }}"
+                    {% endif %}
+                    <span class="notification-time">{{ notification.created_at|time_ago }}</span>
+                </div>
+                {% if notification.post.image %}
+                <a href="{% url 'index' %}#post-{{ notification.post.id }}">
+                    <img src="{{ notification.post.image.url }}" alt="Post image" style="width: 44px; height: 44px; object-fit: cover;">
+                </a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-notifications">
+            새로운 알림이 없습니다.
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

@@ -102,6 +102,16 @@
         {% if form.username.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.username.errors }}</div>{% endif %}
 
         <div class="form-field">
+            {{ form.name }}
+        </div>
+        {% if form.name.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.name.errors }}</div>{% endif %}
+
+        <div class="form-field">
+            {{ form.phone_number }}
+        </div>
+        {% if form.phone_number.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.phone_number.errors }}</div>{% endif %}
+
+        <div class="form-field">
             {{ form.email }}
         </div>
         {% if form.email.errors %}<div style="color: red; font-size: 13px; text-align: left; margin-bottom: 10px;">{{ form.email.errors }}</div>{% endif %}

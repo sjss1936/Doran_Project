@@ -23,3 +23,9 @@ def time_ago(value):
         return f'{diff.seconds // 60}분 전'
     else:
         return f'방금 전'
+
+@register.simple_tag
+def unread_notification_count(user):
+    if user.is_authenticated:
+        return user.notifications.filter(is_read=False).count()
+    return 0

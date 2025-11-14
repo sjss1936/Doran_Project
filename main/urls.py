@@ -24,6 +24,7 @@ urlpatterns = [
     # --- 프로필 URL (순서 중요!) ---
     # 더 구체적인 'edit' 경로가 먼저 와야 합니다. ('main' 브랜치)
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<str:username>/', views.user_profile, name='user_profile'),
     # 공통 URL
     path('profile/', views.profile, name='profile'), 
 ]

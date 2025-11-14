@@ -27,3 +27,23 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('like', 'Like'),
+        ('comment', 'Comment'),
+    )
+
+    user = models.ForeignKey(User, related_name='notifications', on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, related_name='created_notifications', on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=10, choices=NOTIFICATION_TYPES)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, blank=True, null=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.created_by} {self.notification_type}d your post'

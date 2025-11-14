@@ -15,7 +15,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 # Local application imports
 # 'main' 브랜치의 폼들과 'sonne' 브랜치의 폼을 병합한 버전을 임포트합니다.
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
-from .models import Post, Comment, Like
+from .models import Post, Comment, Like, Notification
 
 # 'main' 브랜치의 모범 사례를 따라 get_user_model() 사용
 User = get_user_model()
@@ -96,8 +96,12 @@ def search(request):
 def messages_view(request):
     return render(request, 'main/messages.html')
 
+@login_required
 def notifications(request):
-    return render(request, 'main/notifications.html')
+    notifications = request.user.notifications.all()
+    # 알림을 읽음으로 표시
+    notifications.update(is_read=True)
+    return render(request, 'main/notifications.html', {'notifications': notifications})
 
 # 'main' 브랜치의 뷰 (create 뷰는 공통이었음)
 @login_required
@@ -117,8 +121,15 @@ def create(request):
 # 'main' 브랜치의 DB 연동 뷰를 채택
 @login_required
 def profile(request):
-    posts = request.user.posts.all().order_by('-created_at') # 최신순 정렬 추가
-    context = {'user': request.user, 'posts': posts}
+    # 자신의 프로필 페이지로 리디렉션
+    return redirect('user_profile', username=request.user.username)
+
+@login_required
+def user_profile(request, username):
+    # 다른 사용자의 프로필을 보거나, 자신의 프로필을 봄
+    user = get_object_or_404(User, username=username)
+    posts = user.posts.all().order_by('-created_at')
+    context = {'user': user, 'posts': posts}
     return render(request, 'main/profile.html', context)
 
 # 'main' 브랜치에만 있던 프로필 수정 뷰
@@ -141,7 +152,16 @@ def add_comment(request, post_id):
     if request.method == 'POST':
         text = request.POST.get('text')
         if text: # 빈 댓글 방지
-            Comment.objects.create(user=request.user, post=post, text=text)
+            comment = Comment.objects.create(user=request.user, post=post, text=text)
+            # 알림 생성 (자신이 작성한 게시물에 댓글을 달 때는 제외)
+            if post.user != request.user:
+                Notification.objects.create(
+                    user=post.user,
+                    created_by=request.user,
+                    notification_type='comment',
+                    post=post,
+                    comment=comment
+                )
     # 'profile' 대신 'index'로 리디렉션하는 것이 UX에 더 좋습니다.
     return redirect('index') 
 
@@ -150,9 +170,19 @@ def add_comment(request, post_id):
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     like, created = Like.objects.get_or_create(user=request.user, post=post)
+    
     if not created:
         like.delete()
         liked = False
     else:
         liked = True
+        # 알림 생성 (자신이 작성한 게시물에 좋아요를 누를 때는 제외)
+        if post.user != request.user:
+            Notification.objects.create(
+                user=post.user,
+                created_by=request.user,
+                notification_type='like',
+                post=post
+            )
+            
     return JsonResponse({'likes_count': post.likes.count(), 'liked': liked})
