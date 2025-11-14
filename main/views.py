@@ -8,7 +8,8 @@ from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, Max
+import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -16,7 +17,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 # Local application imports
 # 'main' 브랜치의 폼들과 'sonne' 브랜치의 폼을 병합한 버전을 임포트합니다.
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
-from .models import Post, Comment, Like, Notification
+from .models import Post, Comment, Like, Notification, Follow
 
 # 'main' 브랜치의 모범 사례를 따라 get_user_model() 사용
 User = get_user_model()
@@ -113,8 +114,41 @@ def search(request):
     }
     return render(request, 'main/search.html', context)
 
+@login_required
 def messages_view(request):
-    return render(request, 'main/messages.html')
+    # Get all users with whom the current user has exchanged messages
+    # This is a bit complex, need to find distinct users from both sent and received messages
+    sent_to_users = Message.objects.filter(sender=request.user).values_list('receiver', flat=True)
+    received_from_users = Message.objects.filter(receiver=request.user).values_list('sender', flat=True)
+    
+    all_participant_ids = list(set(list(sent_to_users) + list(received_from_users)))
+    
+    # Exclude current user from the list
+    if request.user.id in all_participant_ids:
+        all_participant_ids.remove(request.user.id)
+
+    conversations = []
+    for user_id in all_participant_ids:
+        other_user = User.objects.get(id=user_id)
+        last_message = Message.objects.filter(
+            Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
+        ).order_by('-timestamp').first()
+        
+        unread_count = Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).count()
+        
+        conversations.append({
+            'other_user': other_user,
+            'last_message': last_message,
+            'unread_count': unread_count
+        })
+    
+    # Sort conversations by last message timestamp
+    conversations.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else None, reverse=True)
+
+    context = {
+        'conversations': conversations
+    }
+    return render(request, 'main/messages.html', context)
 
 @login_required
 def notifications(request):
@@ -149,14 +183,95 @@ def user_profile(request, username):
     # 다른 사용자의 프로필을 보거나, 자신의 프로필을 봄
     user = get_object_or_404(User, username=username)
     posts = user.posts.all().order_by('-created_at')
+
+    is_following = False
     if request.user.is_authenticated:
+        # 현재 로그인한 유저가 이 프로필의 유저를 팔로우하고 있는지 확인
+        is_following = Follow.objects.filter(from_user=request.user, to_user=user).exists()
+        
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
             user=request.user
         )
         posts = posts.annotate(user_has_liked=Exists(user_likes))
-    context = {'user': user, 'posts': posts}
+
+    follower_count = user.followers.count()
+    following_count = user.following.count()
+
+    context = {
+        'user': user, 
+        'posts': posts,
+        'is_following': is_following,
+        'follower_count': follower_count,
+        'following_count': following_count,
+    }
     return render(request, 'main/profile.html', context)
+
+@login_required
+def follow_toggle(request, username):
+    if request.method == 'POST':
+        to_user = get_object_or_404(User, username=username)
+        from_user = request.user
+
+        # 사용자가 자기 자신을 팔로우하는 것을 방지
+        if from_user == to_user:
+            return JsonResponse({'status': 'error', 'message': 'You cannot follow yourself.'}, status=400)
+
+        follow, created = Follow.objects.get_or_create(from_user=from_user, to_user=to_user)
+
+        if not created:
+            # 이미 팔로우하고 있었으면 언팔로우
+            follow.delete()
+            is_following = False
+        else:
+            # 새로 팔로우
+            is_following = True
+
+        # 팔로워/팔로잉 수 계산
+        follower_count = to_user.followers.count()
+        following_count = from_user.following.count()
+
+        return JsonResponse({
+            'status': 'ok',
+            'is_following': is_following,
+            'follower_count': follower_count,
+            'following_count': following_count
+        })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+@login_required
+def send_message(request, username):
+    if request.method == 'POST':
+        receiver = get_object_or_404(User, username=username)
+        sender = request.user
+        data = json.loads(request.body)
+        content = data.get('content')
+
+        if content:
+            Message.objects.create(sender=sender, receiver=receiver, content=content)
+            return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
+        return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty.'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+@login_required
+def conversation(request, username):
+    other_user = get_object_or_404(User, username=username)
+    
+    # Get messages between current user and other_user
+    messages = Message.objects.filter(
+        Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
+    ).order_by('timestamp')
+
+    # Mark messages received by the current user from the other_user as read
+    Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).update(is_read=True)
+
+    context = {
+        'other_user': other_user,
+        'messages': messages
+    }
+    return render(request, 'main/messages.html', context)
+
+
 
 # 'main' 브랜치에만 있던 프로필 수정 뷰
 @login_required

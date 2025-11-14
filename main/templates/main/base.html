@@ -21,6 +21,31 @@
             vertical-align: top;
             margin-left: 5px;
         }
+        .auth-links {
+            display: flex;
+            flex-wrap: nowrap; /* Prevent wrapping */
+            justify-content: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+            gap: 10px; /* Space between items */
+            padding: 10px;
+        }
+        .auth-links a {
+            white-space: nowrap; /* Prevent text wrapping within links */
+            padding: 5px 10px;
+            border: 1px solid #dbdbdb;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #262626;
+            font-size: 14px;
+        }
+        .auth-links a:hover {
+            background-color: #efefef;
+        }
+        .auth-links p {
+            white-space: nowrap; /* Prevent text wrapping for the welcome message */
+            margin: 0; /* Remove default paragraph margin */
+            font-size: 14px;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -50,7 +75,6 @@
             </div>
             <div class="auth-links">
                 {% if user.is_authenticated %}
-                                        <p>환영합니다, {{ user.username }} 님!</p> 
                     <a href="{% url 'logout' %}">로그아웃</a>
                 {% else %}
                     <a href="{% url 'login' %}">로그인</a>

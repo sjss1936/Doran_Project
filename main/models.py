@@ -47,3 +47,27 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'{self.created_by} {self.notification_type}d your post'
+
+class Follow(models.Model):
+    from_user = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+
+    def __str__(self):
+        return f'{self.from_user} follows {self.to_user}'
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f'From {self.sender} to {self.receiver}: {self.content[:50]}'

@@ -2,6 +2,35 @@
 {% load static %}
 {% load main_filters %}
 
+{% block extra_head %}
+<style>
+    .profile-actions {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+    .profile-action-btn {
+        flex: 1; /* This will make the buttons share the space equally */
+        text-align: center;
+        padding: 8px;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        color: #262626;
+        background-color: #fafafa;
+        font-size: 14px; /* Ensure consistent font size */
+    }
+    .profile-action-btn:hover {
+        background-color: #efefef;
+    }
+    .profile-header {
+        padding-top: 40px; /* Adjust this value as needed */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="profile-container">
     <div class="profile-header">
@@ -19,10 +48,19 @@
                                 <p class="username-handle">@{{ user.username }}</p>
                                 <p class="user-bio">{{ user.bio|default:"여기에 자기소개를 넣어주세요." }}</p>
                                 <div class="follow-stats">
-                                    <span><b>0</b> 팔로잉</span>
-                                    <span><b>0</b> 팔로워</span>
+                                    <span id="following-count"><b>{{ following_count }}</b> 팔로잉</span>
+                                    <span id="follower-count"><b>{{ follower_count }}</b> 팔로워</span>
                                 </div>
-                                <a href="{% url 'edit_profile' %}" class="edit-profile-btn">프로필 수정</a>
+                                <div class="profile-actions">
+                                    {% if user != request.user %}
+                                        <button id="follow-btn" class="profile-action-btn" data-username="{{ user.username }}">
+                                            {% if is_following %}팔로우 취소{% else %}팔로우{% endif %}
+                                        </button>
+                                        <a href="{% url 'conversation' username=user.username %}" class="profile-action-btn">메시지</a>
+                                    {% else %}
+                                        <a href="{% url 'edit_profile' %}" class="profile-action-btn">프로필 수정</a>
+                                    {% endif %}
+                                </div>
                             </div>        </div>
         <div class="profile-nav-x">
             <ul>
@@ -87,13 +125,19 @@ D               {% endfor %}
 </div>
 
 <script>
+    // Like button functionality
     document.querySelectorAll('.like-btn').forEach(item => {
         item.addEventListener('click', event => {
             event.preventDefault();
             let postId = event.currentTarget.dataset.postId;
             let likeIcon = event.currentTarget.querySelector('img');
 
-            fetch(`/post/${postId}/like/`)
+            fetch(`/post/${postId}/like/`, {
+                method: 'GET', // Like is a GET request in the current implementation
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
             .then(response => response.json())
             .then(data => {
                 document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
@@ -102,15 +146,16 @@ D               {% endfor %}
                 } else {
                     likeIcon.src = "{% static 'main/img/like.png' %}";
                 }
-            })
-        })
-    })
+            });
+        });
+    });
 
+    // View all comments functionality
     document.querySelectorAll('.view-all-comments').forEach(item => {
         item.addEventListener('click', event => {
             event.preventDefault();
             let postId = event.currentTarget.dataset.postId;
-Player           let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
+            let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
             if (hiddenCommentsDiv.style.display === 'none') {
                 hiddenCommentsDiv.style.display = 'block';
                 event.currentTarget.innerText = '댓글 숨기기';
@@ -118,18 +163,68 @@ Player           let hiddenCommentsDiv = document.getElementById(`hidden-comment
                 hiddenCommentsDiv.style.display = 'none';
                 event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount}개)`;
             }
-        })
-    })
+        });
+    });
 
+    // Comment link functionality
     document.querySelectorAll('.post-actions a:nth-child(2)').forEach(item => {
         item.addEventListener('click', event => {
             event.preventDefault();
             let postId = event.currentTarget.closest('.post').querySelector('.like-btn').dataset.postId;
-Player           let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
+            let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
             if (viewAllCommentsLink) {
-                viewAllCommentsLink.click(); // Simulate click on 'View all comments' link
-Scroll           }
-        })
-    })
+                viewAllCommentsLink.click();
+            }
+        });
+    });
+
+    // Follow button functionality
+    const followBtn = document.getElementById('follow-btn');
+    if (followBtn) {
+        followBtn.addEventListener('click', event => {
+            event.preventDefault();
+            const username = event.currentTarget.dataset.username;
+            
+            // Standard Django function to get CSRF token from cookies
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            const csrftoken = getCookie('csrftoken');
+
+            fetch(`/profile/${username}/follow/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    const followBtn = document.getElementById('follow-btn');
+                    const followerCountSpan = document.getElementById('follower-count').querySelector('b');
+                    
+                    if (data.is_following) {
+                        followBtn.innerText = '팔로우 취소';
+                    } else {
+                        followBtn.innerText = '팔로우';
+                    }
+                    followerCountSpan.innerText = data.follower_count;
+                }
+            });
+        });
+    }
 </script>
 {% endblock %}
