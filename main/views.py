@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
+from django.db.models import Exists, OuterRef
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -32,6 +33,12 @@ def check_username(request):
 # 'main' 브랜치의 DB 연동 뷰를 채택
 def index(request):
     posts = Post.objects.all().order_by('-created_at')
+    if request.user.is_authenticated:
+        user_likes = Like.objects.filter(
+            post=OuterRef('pk'),
+            user=request.user
+        )
+        posts = posts.annotate(user_has_liked=Exists(user_likes))
     context = {'posts': posts}
     return render(request, 'main/index.html', context)
 
@@ -129,6 +136,12 @@ def user_profile(request, username):
     # 다른 사용자의 프로필을 보거나, 자신의 프로필을 봄
     user = get_object_or_404(User, username=username)
     posts = user.posts.all().order_by('-created_at')
+    if request.user.is_authenticated:
+        user_likes = Like.objects.filter(
+            post=OuterRef('pk'),
+            user=request.user
+        )
+        posts = posts.annotate(user_has_liked=Exists(user_likes))
     context = {'user': user, 'posts': posts}
     return render(request, 'main/profile.html', context)
 

@@ -21,7 +21,9 @@
     {% for post in posts %}
     <div class="post">
         <div class="post-header">
-                        <img class="profile-picture" src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ post.user.username }} profile">
+            <a href="{% url 'user_profile' username=post.user.username %}">
+                <img class="profile-picture" src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ post.user.username }} profile">
+            </a>
             <span>{{ post.user.username }}</span>
         </div>
         <div class="post-image">
@@ -29,7 +31,9 @@
         </div>
         <div class="post-footer">
             <div class="actions">
-                <a href="#" class="like-btn" data-post-id="{{ post.id }}"><img src="{% static 'main/img/good.png' %}" alt="좋아요" class="action-icon"></a>
+                <a href="#" class="like-btn" data-post-id="{{ post.id }}">
+                    <img src="{% if post.user_has_liked %}{% static 'main/img/clicklike.png' %}{% else %}{% static 'main/img/like.png' %}{% endif %}" alt="좋아요" class="action-icon">
+                </a>
                 <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
                 <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
             </div>
@@ -69,11 +73,18 @@
         item.addEventListener('click', event => {
             event.preventDefault();
             let postId = event.currentTarget.dataset.postId;
+            let likeIcon = event.currentTarget.querySelector('img');
+
             fetch(`/post/${postId}/like/`)
             .then(response => response.json())
             .then(data => {
                 document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
-})
+                if (data.liked) {
+                    likeIcon.src = "{% static 'main/img/clicklike.png' %}";
+                } else {
+                    likeIcon.src = "{% static 'main/img/like.png' %}";
+                }
+            })
         })
     })
 
