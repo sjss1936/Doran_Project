@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -98,7 +98,20 @@ def logout_view(request):
 
 # 'sonne' 브랜치에만 있던 placeholder 뷰들
 def search(request):
-    return render(request, 'main/search.html')
+    query = request.GET.get('q')
+    if query:
+        # 'username' 또는 'name' 필드에서 쿼리를 포함하는 사용자를 검색합니다.
+        users = User.objects.filter(
+            Q(username__icontains=query) | Q(name__icontains=query)
+        )
+    else:
+        users = User.objects.none() # 쿼리가 없으면 아무도 반환하지 않습니다.
+
+    context = {
+        'query': query,
+        'users': users
+    }
+    return render(request, 'main/search.html', context)
 
 def messages_view(request):
     return render(request, 'main/messages.html')
