@@ -88,69 +88,69 @@
                 </div>
             {% endif %}
         </div>
-    
-    <script>
-        // Standard Django function to get CSRF token from cookies
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        const csrftoken = getCookie('csrftoken');
-    
-        const chatMessageInput = document.getElementById('chat-message-input');
-        const chatMessageSubmit = document.getElementById('chat-message-submit');
-        const chatLog = document.getElementById('chat-log');
-    
-        if (chatMessageSubmit) {
-            chatMessageSubmit.addEventListener('click', function() {
-                const messageContent = chatMessageInput.value.trim();
-                const receiverUsername = chatMessageSubmit.dataset.username;
-    
-                if (messageContent) {
-                    fetch(`/messages/${receiverUsername}/send/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrftoken,
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ 'content': messageContent })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            // Append message to chat log
-                            const messageDiv = document.createElement('div');
-                            messageDiv.classList.add('message', 'sent');
-                            messageDiv.innerHTML = `<div>${messageContent}</div><small>지금</small>`; // "지금" for now, can be improved
-                            chatLog.appendChild(messageDiv);
-                            chatMessageInput.value = '';
-                            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
-                        } else {
-                            console.error('Error sending message:', data.message);
-                        }
-                    })
-                    .catch(error => console.error('Fetch error:', error));
-                }
-            });
-    
-            chatMessageInput.addEventListener('keyup', function(event) {
-                if (event.key === 'Enter') {
-                    chatMessageSubmit.click();
-                }
-            });
-        }
-    </script>
-    
 </div>
 
+{{ request.user.username|json_script:"user_username" }}
+
+<script>
+    // Standard Django function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    const chatMessageInput = document.getElementById('chat-message-input');
+    const chatMessageSubmit = document.getElementById('chat-message-submit');
+    const chatLog = document.getElementById('chat-log');
+
+    if (chatMessageSubmit) {
+        chatMessageSubmit.addEventListener('click', function() {
+            const messageContent = chatMessageInput.value.trim();
+            const receiverUsername = chatMessageSubmit.dataset.username;
+
+            if (messageContent) {
+                fetch(`/messages/${receiverUsername}/send/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ 'content': messageContent })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        // Append message to chat log
+                        const messageDiv = document.createElement('div');
+                        messageDiv.classList.add('message', 'sent');
+                        messageDiv.innerHTML = `<div>${messageContent}</div><small>지금</small>`; // "지금" for now, can be improved
+                        chatLog.appendChild(messageDiv);
+                        chatMessageInput.value = '';
+                        chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+                    } else {
+                        console.error('Error sending message:', data.message);
+                    }
+                })
+                .catch(error => console.error('Fetch error:', error));
+            }
+        });
+
+        chatMessageInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                chatMessageSubmit.click();
+            }
+        });
+    }
+</script>
