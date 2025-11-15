@@ -97,12 +97,8 @@ def check_username(request):
     }
     return JsonResponse(data)
 
-# These views are placeholders and can be developed further.
 def search(request):
     return render(request, 'main/search.html')
-
-def messages(request):
-    return render(request, 'main/messages.html')
 
 def notifications(request):
     return render(request, 'main/notifications.html')
@@ -141,3 +137,94 @@ def profile(request):
         'posts': posts
     }
     return render(request, 'main/profile.html', context)
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from .models import Room, Message, Profile # Profile is still needed for user info
+
+# These views are placeholders and can be developed further.
+@login_required
+def messages(request):
+    users = User.objects.exclude(id=request.user.id)
+    return render(request, 'main/messages.html', {'users': users})
+
+@login_required
+def room_ajax(request, room_name):
+    room, created = Room.objects.get_or_create(name=room_name)
+    messages = Message.objects.filter(room=room).order_by('timestamp').select_related('user__profile')
+
+    # Extract other username from room_name
+    usernames_in_room = room_name.split('_')[1:] # ['user1', 'user2']
+    other_username = next((u for u in usernames_in_room if u != request.user.username), None)
+    
+    other_user_profile_picture_url = None
+    if other_username:
+        try:
+            other_user = User.objects.get(username=other_username)
+            if other_user.profile.profile_picture:
+                other_user_profile_picture_url = other_user.profile.profile_picture.url
+        except User.DoesNotExist:
+            pass # Handle case where other user might not exist
+
+    return render(request, 'main/messages.html', {
+        'room_name': room_name,
+        'messages': messages,
+        'username': request.user.username,
+        'other_user_profile_picture_url': other_user_profile_picture_url,
+    })
+
+@csrf_exempt
+@login_required
+def send_message_ajax(request):
+    if request.method == 'POST':
+        message_content = request.POST.get('message')
+        room_name = request.POST.get('room_name')
+        username = request.user.username
+
+        print(f"send_message_ajax: Received message_content='{message_content}', room_name='{room_name}', username='{username}'")
+
+        try:
+            user = User.objects.get(username=username)
+            room = Room.objects.get(name=room_name)
+            message = Message.objects.create(user=user, room=room, content=message_content)
+            
+            profile_picture_url = ''
+            if hasattr(user, 'profile') and user.profile.profile_picture:
+                profile_picture_url = user.profile.profile_picture.url
+
+            print(f"send_message_ajax: Message saved. User: {user.username}, Room: {room.name}")
+            return JsonResponse({
+                'status': 'success',
+                'message': message.content,
+                'username': user.username,
+                'profile_picture_url': profile_picture_url,
+                'timestamp': message.timestamp.isoformat(),
+            })
+        except (User.DoesNotExist, Room.DoesNotExist) as e:
+            print(f"send_message_ajax: User or Room Does Not Exist error: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception as e:
+            print(f"send_message_ajax: Unexpected error: {e}")
+            return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {e}'}, status=500)
+    print("send_message_ajax: Invalid request method (not POST)")
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+@login_required
+def get_messages_ajax(request, room_name):
+    room, created = Room.objects.get_or_create(name=room_name)
+    last_message_id = request.GET.get('last_message_id', 0)
+    
+    messages = Message.objects.filter(room=room, id__gt=last_message_id).order_by('timestamp').select_related('user__profile')
+    
+    messages_data = []
+    for message in messages:
+        profile_picture_url = message.user.profile.profile_picture.url if message.user.profile.profile_picture else ''
+        messages_data.append({
+            'id': message.id,
+            'message': message.content,
+            'username': message.user.username,
+            'profile_picture_url': profile_picture_url,
+            'timestamp': message.timestamp.isoformat(),
+        })
+    
+    return JsonResponse({'messages': messages_data})

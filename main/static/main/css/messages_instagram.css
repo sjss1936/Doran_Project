@@ -170,20 +170,48 @@
     display: flex;
     margin-bottom: 12px;
     max-width: 60%;
+    align-items: flex-end; /* Align profile pic and message bubble */
+}
+
+.message-profile-pic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
 }
 
 .message div {
-    padding: 12px;
-    border-radius: 20px;
+    padding: 8px 12px; /* Adjusted padding */
+    border-radius: 18px; /* Slightly smaller radius */
     font-size: 14px;
     line-height: 1.4;
     word-wrap: break-word; /* Legacy */
     overflow-wrap: break-word; /* Standard */
     word-break: break-all; /* Aggressive break for overflow prevention */
+    display: flex;
+    flex-direction: column;
+}
+
+.message p {
+    margin: 0; /* Remove default paragraph margin */
+}
+
+.message .timestamp {
+    font-size: 10px;
+    color: #8e8e8e;
+    align-self: flex-end; /* Align timestamp to the right within the bubble */
+    margin-top: 4px;
 }
 
 .message.sent {
     align-self: flex-end;
+    flex-direction: row-reverse; /* Reverse order for sent messages */
+}
+
+.message.sent .message-profile-pic {
+    margin-right: 0;
+    margin-left: 8px;
 }
 
 .message.sent div {
