@@ -155,6 +155,9 @@
                 return;
             }
 
+            // Disable the send button to prevent double submission
+            chatMessageSubmit.disabled = true;
+
             const formData = new FormData();
             formData.append('message', message);
             formData.append('room_name', currentRoomName);
@@ -172,19 +175,24 @@
                     chatMessageInput.value = '';
                     // Message will be added by polling, no need to add immediately
                     // Unless we want immediate feedback, then add it here
-                    // const messageHtml = createMessageHtml(data.username, data.message, data.profile_picture_url, data.timestamp);
-                    // chatLog.innerHTML += messageHtml;
-                    // chatLog.scrollTop = chatLog.scrollHeight;
+                    const messageHtml = createMessageHtml(data.username, data.message, data.profile_picture_url, data.timestamp);
+                    chatLog.innerHTML += messageHtml;
+                    chatLog.scrollTop = chatLog.scrollHeight;
                 } else {
                     console.error('Error sending message:', data.message);
                 }
             })
-            .catch(error => console.error('Error sending message:', error));
+            .catch(error => console.error('Error sending message:', error))
+            .finally(() => {
+                // Re-enable the send button after the fetch request is complete
+                chatMessageSubmit.disabled = false;
+            });
         }
 
         chatMessageSubmit.addEventListener('click', sendMessage);
         chatMessageInput.addEventListener('keyup', function (e) {
             if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default form submission behavior
                 sendMessage();
             }
         });
