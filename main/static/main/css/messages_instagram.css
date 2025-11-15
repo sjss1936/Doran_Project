@@ -4,6 +4,8 @@
     width: 100%;
     height: 100%;
     background-color: #fff;
+    position: relative; /* Establish a stacking context for its children */
+    z-index: 2; /* Ensure it's above the fixed chat-input-form if it's not a direct child */
 }
 
 /* Left Panel: Conversations List */
@@ -13,6 +15,8 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    position: relative; /* Add position to make z-index effective */
+    z-index: 9999; /* Ensure it's above the chat-input-form */
 }
 
 .list-header {
@@ -239,6 +243,7 @@
     left: 530px; /* 180px (sidebar) + 350px (conversations-list) */
     width: calc(100% - 530px);
     box-sizing: border-box; /* Ensure padding is included in the width */
+    z-index: 1; /* Ensure it's below the conversations-list */
 }
 
 .chat-input-form input {
@@ -294,8 +299,8 @@
         height: 100%;
     }
 
-    .chat-input-form {
-        left: 0;
-        width: 100%;
+.chat-input-form {
+        left: 180px; /* 메인 사이드바 너비(180px)만큼 띄움 */
+        width: calc(100% - 180px); /* 전체 너비에서 사이드바 너비(180px)를 뺌 */
     }
 }
