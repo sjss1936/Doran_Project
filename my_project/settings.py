@@ -31,15 +31,25 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',
+    'django.contrib.sites', # 'sonne' 브랜치에서 추가됨
+    'channels', # Add channels here
     'main',
 ]
+
+ASGI_APPLICATION = 'my_project.asgi.application' # Add this line
+
+CHANNEL_LAYERS = { # Add this block
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -173,42 +173,6 @@ def room_ajax(request, room_name):
         'other_user_profile_picture_url': other_user_profile_picture_url,
     })
 
-@csrf_exempt
-@login_required
-def send_message_ajax(request):
-    if request.method == 'POST':
-        message_content = request.POST.get('message')
-        room_name = request.POST.get('room_name')
-        username = request.user.username
-
-        print(f"send_message_ajax: Received message_content='{message_content}', room_name='{room_name}', username='{username}'")
-
-        try:
-            user = User.objects.get(username=username)
-            room = Room.objects.get(name=room_name)
-            message = Message.objects.create(user=user, room=room, content=message_content)
-            
-            profile_picture_url = ''
-            if hasattr(user, 'profile') and user.profile.profile_picture:
-                profile_picture_url = user.profile.profile_picture.url
-
-            print(f"send_message_ajax: Message saved. User: {user.username}, Room: {room.name}")
-            return JsonResponse({
-                'status': 'success',
-                'message': message.content,
-                'username': user.username,
-                'profile_picture_url': profile_picture_url,
-                'timestamp': message.timestamp.isoformat(),
-            })
-        except (User.DoesNotExist, Room.DoesNotExist) as e:
-            print(f"send_message_ajax: User or Room Does Not Exist error: {e}")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-        except Exception as e:
-            print(f"send_message_ajax: Unexpected error: {e}")
-            return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {e}'}, status=500)
-    print("send_message_ajax: Invalid request method (not POST)")
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-
 @login_required
 def get_messages_ajax(request, room_name):
     room, created = Room.objects.get_or_create(name=room_name)

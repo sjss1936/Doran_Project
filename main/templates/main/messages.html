@@ -51,8 +51,8 @@
 <script>
     const userUsername = "{{ request.user.username }}";
     let currentRoomName = null;
-    let lastMessageId = 0;
-    let pollingInterval = null;
+    let chatSocket = null;
+    let lastMessageId = 0; // To keep track of the last message ID for initial load
 
     document.addEventListener('DOMContentLoaded', function () {
         const userItems = document.querySelectorAll('.user-item');
@@ -71,7 +71,7 @@
 
                 const otherUsername = this.dataset.username;
                 chatHeaderUsername.textContent = otherUsername;
-                chatHeaderImg.src = this.querySelector('img').src; // Set header image from clicked user
+                chatHeaderImg.src = this.querySelector('img').src;
 
                 chatPlaceholder.style.display = 'none';
                 chatContent.style.display = 'flex';
@@ -81,60 +81,62 @@
                 const usernames = [userUsername, otherUsername].sort();
                 currentRoomName = `chat_${usernames[0]}_${usernames[1]}`;
 
-                loadChatRoom(currentRoomName);
-
-                // Start polling for new messages
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
+                // Close existing WebSocket if open
+                if (chatSocket) {
+                    chatSocket.close();
                 }
-                pollingInterval = setInterval(function() {
-                    pollNewMessages(currentRoomName);
-                }, 3000); // Poll every 3 seconds
+
+                // Establish new WebSocket connection
+                chatSocket = new WebSocket(
+                    'ws://' + window.location.host + '/ws/chat/' + currentRoomName + '/'
+                );
+
+                chatSocket.onopen = function(e) {
+                    console.log('WebSocket connection opened.');
+                    // Fetch historical messages after connection is open
+                    fetchHistoricalMessages(currentRoomName);
+                };
+
+                chatSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'chat_message') {
+                        const messageHtml = createMessageHtml(data.username, data.message, data.profile_picture_url, data.timestamp, data.message_id);
+                        chatLog.innerHTML += messageHtml;
+                        chatLog.scrollTop = chatLog.scrollHeight;
+                        lastMessageId = Math.max(lastMessageId, data.message_id);
+                    }
+                };
+
+                chatSocket.onclose = function(e) {
+                    console.log('WebSocket connection closed unexpectedly.');
+                };
+
+                chatSocket.onerror = function(e) {
+                    console.error('WebSocket error:', e);
+                };
             });
         });
 
-        function loadChatRoom(roomName) {
-            fetch(`/messages/${roomName}/`)
-                .then(response => response.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newChatLogContent = doc.getElementById('chat-log'); // Assuming the room_ajax view renders the full messages.html
-                    
-                    // This part needs adjustment if room_ajax renders only the chat log part
-                    // For now, we'll assume room_ajax renders the full messages.html and we extract the chat log
-                    // A better approach would be to have room_ajax return JSON for messages
-                    
-                    // Since room_ajax renders the full messages.html, we need to extract the messages
-                    // from the script tag that displays historical messages.
-                    // This is a temporary workaround. A dedicated JSON endpoint for messages is better.
-                    
-                    // For now, let's just fetch messages via get_messages_ajax directly
-                    pollNewMessages(roomName); // Load initial messages
-                })
-                .catch(error => console.error('Error loading chat room:', error));
-        }
-
-        function pollNewMessages(roomName) {
+        function fetchHistoricalMessages(roomName) {
             fetch(`/messages/get/${roomName}/?last_message_id=${lastMessageId}`)
                 .then(response => response.json())
                 .then(data => {
                     data.messages.forEach(msg => {
-                        const messageHtml = createMessageHtml(msg.username, msg.message, msg.profile_picture_url, msg.timestamp);
+                        const messageHtml = createMessageHtml(msg.username, msg.message, msg.profile_picture_url, msg.timestamp, msg.id);
                         chatLog.innerHTML += messageHtml;
                         lastMessageId = Math.max(lastMessageId, msg.id);
                     });
                     chatLog.scrollTop = chatLog.scrollHeight;
                 })
-                .catch(error => console.error('Error polling new messages:', error));
+                .catch(error => console.error('Error fetching historical messages:', error));
         }
 
-        function createMessageHtml(user, message, profilePictureUrl, timestamp) {
+        function createMessageHtml(user, message, profilePictureUrl, timestamp, messageId) {
             const messageClass = user === userUsername ? 'sent' : 'received';
             const profileImgSrc = profilePictureUrl ? profilePictureUrl : "{% static 'main/img/user1.png' %}";
             const formattedTimestamp = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return `
-                <div class="message ${messageClass}">
+                <div class="message ${messageClass}" data-message-id="${messageId}">
                     <img src="${profileImgSrc}" alt="${user}" class="message-profile-pic">
                     <div>
                         <p>${message}</p>
@@ -155,64 +157,24 @@
                 return;
             }
 
-            // Disable the send button to prevent double submission
-            chatMessageSubmit.disabled = true;
-
-            const formData = new FormData();
-            formData.append('message', message);
-            formData.append('room_name', currentRoomName);
-            const csrfToken = getCookie('csrftoken');
-            console.log('CSRF Token being sent:', csrfToken); // Debugging line
-            formData.append('csrfmiddlewaretoken', csrfToken); // Get CSRF token
-
-            fetch('/messages/send/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    chatMessageInput.value = '';
-                    // Message will be added by polling, no need to add immediately
-                    // Unless we want immediate feedback, then add it here
-                    const messageHtml = createMessageHtml(data.username, data.message, data.profile_picture_url, data.timestamp);
-                    chatLog.innerHTML += messageHtml;
-                    chatLog.scrollTop = chatLog.scrollHeight;
-                } else {
-                    console.error('Error sending message:', data.message);
-                }
-            })
-            .catch(error => console.error('Error sending message:', error))
-            .finally(() => {
-                // Re-enable the send button after the fetch request is complete
-                chatMessageSubmit.disabled = false;
-            });
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'username': userUsername,
+                }));
+                chatMessageInput.value = '';
+            } else {
+                console.error('WebSocket is not open. Message not sent.');
+            }
         }
 
         chatMessageSubmit.addEventListener('click', sendMessage);
         chatMessageInput.addEventListener('keyup', function (e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); // Prevent default form submission behavior
+                e.preventDefault();
                 sendMessage();
             }
         });
-
-        // Function to get CSRF token
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
     });
 </script>
 {% endblock %}

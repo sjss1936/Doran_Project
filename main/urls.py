@@ -4,7 +4,6 @@ from . import views
 urlpatterns = [
     path('', views.index, name='index'),
     path('search/', views.search, name='search'),
-    path('messages/send/', views.send_message_ajax, name='send_message_ajax'),
     path('messages/get/<str:room_name>/', views.get_messages_ajax, name='get_messages_ajax'),
     path('messages/<str:room_name>/', views.room_ajax, name='room_ajax'),
     path('messages/', views.messages, name='messages'),
