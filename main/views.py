@@ -16,7 +16,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 # Local application imports
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
-from .models import Post, Comment, Like, Notification, Follow, Message
+from .models import Post, Comment, Like, Notification, Follow, Message, Room
 
 # Get the User model
 User = get_user_model()

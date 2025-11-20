@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites', # 'sonne' branch
-    'channels', # 'sonne' branch
+    'django.contrib.sites',
+    'channels',
     'main',
 ]
 
@@ -135,11 +135,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Merged settings ---
 
-# 'sonne' branch settings (email auth)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
 
-# 'main' branch settings (custom user, media, login)
 AUTH_USER_MODEL = 'main.User'
 LOGIN_URL = 'login'
 MEDIA_URL = '/media/'
