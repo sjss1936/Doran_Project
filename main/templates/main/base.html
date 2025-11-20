@@ -1,4 +1,5 @@
-{% load static %}
+﻿{% load static %}
+{% load main_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'main/css/style.css' %}">
+    <style>
+        .notification-badge {
+            background-color: #ff3b30;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            vertical-align: top;
+            margin-left: 5px;
+        }
+        .auth-links {
+            display: flex;
+            flex-wrap: nowrap; /* Prevent wrapping */
+            justify-content: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+            gap: 10px; /* Space between items */
+            padding: 10px;
+        }
+        .auth-links a {
+            white-space: nowrap; /* Prevent text wrapping within links */
+            padding: 5px 10px;
+            border: 1px solid #dbdbdb;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #262626;
+            font-size: 14px;
+        }
+        .auth-links a:hover {
+            background-color: #efefef;
+        }
+        .auth-links p {
+            white-space: nowrap; /* Prevent text wrapping for the welcome message */
+            margin: 0; /* Remove default paragraph margin */
+            font-size: 14px;
+        }
+    </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -22,14 +60,21 @@
                     <li><a href="{% url 'index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}"><img src="{% static 'main/img/home.png' %}" alt="홈" class="nav-icon"> 홈</a></li>
                     <li><a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}"><img src="{% static 'main/img/search.png' %}" alt="검색" class="nav-icon"> 검색</a></li>
                     <li><a href="{% url 'messages' %}" class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}"><img src="{% static 'main/img/message.png' %}" alt="메시지" class="nav-icon"> 메시지</a></li>
-                    <li><a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}"><img src="{% static 'main/img/alarm.png' %}" alt="알림" class="nav-icon"> 알림</a></li>
+                    <li>
+                        <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+                            <img src="{% static 'main/img/alarm.png' %}" alt="알림" class="nav-icon"> 알림
+                            {% unread_notification_count user as unread_count %}
+                            {% if unread_count > 0 %}
+                                <span class="notification-badge">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li><a href="{% url 'create' %}" class="{% if request.resolver_match.url_name == 'create' %}active{% endif %}"><img src="{% static 'main/img/create.png' %}" alt="만들기" class="nav-icon"> 만들기</a></li>
-                    <li><a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}"><img src="{% static 'main/img/profile.png' %}" alt="프로필" class="nav-icon"> 프로필</a></li>
+                    <li><a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'user_profile' %}active{% endif %}"><img src="{% static 'main/img/profile.png' %}" alt="프로필" class="nav-icon"> 프로필</a></li>
                 </ul>
             </div>
             <div class="auth-links">
                 {% if user.is_authenticated %}
-                    <p>환영합니다, {{ user.username }} 님!</p>
                     <a href="{% url 'logout' %}">로그아웃</a>
                 {% else %}
                     <a href="{% url 'login' %}">로그인</a>

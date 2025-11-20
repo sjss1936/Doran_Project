@@ -1,4 +1,4 @@
-{% extends 'main/base.html' %}
+﻿{% extends 'main/base.html' %}
 {% load static %}
 
 {% block content %}
@@ -9,13 +9,21 @@
     <form method="post" class="login-form">
         {% csrf_token %}
         
-        {% if form.errors %}
+                {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                                        <p class="{{ message.tags }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+                {% if form.errors %}
             <div class="error-message">
                 <p>아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해주세요.</p>
             </div>
         {% endif %}
 
-        <div class="form-field">
+                <div class="form-field">
             <label for="{{ form.username.id_for_label }}" class="visually-hidden">{{ form.username.label }}</label>
             {{ form.username }}
         </div>

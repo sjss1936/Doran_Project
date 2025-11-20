@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites', # 'sonne' 브랜치에서 추가됨
-    'channels', # Add channels here
+    'django.contrib.sites', # 'sonne' branch
+    'channels', # 'sonne' branch
     'main',
 ]
 
@@ -133,8 +133,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 이메일 백엔드 설정 (개발용: 콘솔에 이메일 출력)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# --- Merged settings ---
 
-# 사이트 설정
+# 'sonne' branch settings (email auth)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
+
+# 'main' branch settings (custom user, media, login)
+AUTH_USER_MODEL = 'main.User'
+LOGIN_URL = 'login'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
