@@ -31,12 +31,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    # ----------------------------------------------------
-    # 고객님의 EC2 공인 IP와 퍼블릭 DNS를 여기에 추가하세요.
-    # 예시: '3.35.11.230', 'ec2-3-35-11-230.ap-northeast-2.compute.amazonaws.com'
-    # ----------------------------------------------------
-    '127.0.0.1', # 로컬 테스트용
+    '3.35.11.230',  # 고객님의 EC2 공인 IP 주소
+    'ec2-3-35-11-230.ap-northeast-2.compute.amazonaws.com',  # 고객님의 EC2 퍼블릭 DNS 주소
+    '127.0.0.1',  # 로컬 및 서버 내부 테스트용
 ]
+# ----------------------------------------------------
 
 
 # Application definition
