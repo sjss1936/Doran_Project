@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
-from django.db.models import Exists, OuterRef, Q, Max
+from django.db.models import Exists, OuterRef, Q, Max, Subquery, Count
 import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
@@ -30,7 +30,7 @@ def check_username(request):
     return JsonResponse(data)
 
 def index(request):
-    posts = Post.objects.all().order_by('-created_at')
+    posts = Post.objects.select_related('user').all().order_by('-created_at')
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
@@ -103,33 +103,59 @@ def search(request):
 
 @login_required
 def messages_view(request):
-    sent_to_users = Message.objects.filter(sender=request.user).values_list('receiver', flat=True)
-    received_from_users = Message.objects.filter(receiver=request.user).values_list('sender', flat=True)
-    
-    all_participant_ids = list(set(list(sent_to_users) + list(received_from_users)))
-    
-    if request.user.id in all_participant_ids:
-        all_participant_ids.remove(request.user.id)
+    user = request.user
 
-    conversations = []
-    for user_id in all_participant_ids:
-        other_user = User.objects.get(id=user_id)
-        last_message = Message.objects.filter(
-            Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
-        ).order_by('-timestamp').first()
-        
-        unread_count = Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).count()
-        
-        conversations.append({
-            'other_user': other_user,
-            'last_message': last_message,
-            'unread_count': unread_count
-        })
+    # Get all users the current user has had a conversation with
+    participants = User.objects.filter(
+        Q(sent_messages__receiver=user) | Q(received_messages__sender=user)
+    ).distinct().exclude(pk=user.pk)
+
+    # Subquery to get the last message content for each conversation
+    last_message_content_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('content')[:1]
+
+    # Subquery to get the last message timestamp for each conversation
+    last_message_ts_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('timestamp')[:1]
     
-    conversations.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else None, reverse=True)
+    # Subquery to get the last message sender for each conversation
+    last_message_sender_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('sender__username')[:1]
+
+    # Subquery to get the count of unread messages from each user
+    unread_count_subquery = Message.objects.filter(
+        sender=OuterRef('pk'), receiver=user, is_read=False
+    ).values('pk').annotate(count=Count('pk')).values('count')
+
+    # Annotate the participants with the last message details and unread count
+    conversations = participants.annotate(
+        last_message_content=Subquery(last_message_content_subquery),
+        last_message_ts=Subquery(last_message_ts_subquery),
+        last_message_sender=Subquery(last_message_sender_subquery),
+        unread_count=Subquery(unread_count_subquery)
+    ).order_by('-last_message_ts')
+    
+    # The template needs to be adjusted to handle the annotated fields.
+    # I will create a list of dictionaries to pass to the template
+    # to maintain a similar structure to what was there before.
+    
+    conversation_list = []
+    for p in conversations:
+        conversation_list.append({
+            'other_user': p,
+            'last_message': {
+                'content': p.last_message_content,
+                'timestamp': p.last_message_ts,
+                'sender': {'username': p.last_message_sender}
+            },
+            'unread_count': p.unread_count if p.unread_count else 0
+        })
 
     context = {
-        'conversations': conversations
+        'conversations': conversation_list
     }
     return render(request, 'main/messages.html', context)
 
@@ -159,7 +185,7 @@ def profile(request):
 @login_required
 def user_profile(request, username):
     user = get_object_or_404(User, username=username)
-    posts = user.posts.all().order_by('-created_at')
+    posts = user.posts.select_related('user').all().order_by('-created_at')
 
     is_following = False
     if request.user.is_authenticated:

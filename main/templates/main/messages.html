@@ -40,7 +40,7 @@
                     {% endif %}
                     <div class="user-info">
                         <strong>{{ conversation.other_user.username }}</strong>
-                        {% if conversation.last_message %}
+                        {% if conversation.last_message.content %}
                             <span>{{ conversation.last_message.content|truncatechars:30 }}</span>
                         {% else %}
                             <span>Start a conversation</span>

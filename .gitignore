@@ -1,28 +1,92 @@
-# --- 1. Python / 가상환경 ---
-# 가상환경 폴더. (.venv/ 또는 venv/ 등)
-.venv/
-venv/
-
-# 파이썬 캐시 파일
-*.pyc
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
 
-# --- 2. Django ---
-# 기본 데이터베이스 (개발용)
-*.sqlite3
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
 db.sqlite3
+db.sqlite3-journal
 
-# 미디어 파일 (사용자가 업로드한 파일)
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# "media" folder
 media/
 
-# 정적 파일 (CSS, JS) - 배포 시 생성되는 파일
-# (주의: app/static/ 안의 파일은 포함되어야 함)
-staticfiles/
+# temp files
+*.tmp
+*.bak
+*~
 
-# --- 3. IDE (PyCharm) ---
-# 파이참 설정 폴더 (매우 중요)
+# idea folder
 .idea/
-
-# --- 4. OS (Mac) ---
-# 맥 OS 시스템 파일
-.DS_Store
