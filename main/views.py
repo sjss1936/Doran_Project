@@ -8,21 +8,19 @@ from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
-from django.db.models import Exists, OuterRef, Q, Max
+from django.db.models import Exists, OuterRef, Q, Max, Subquery, Count
 import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 # Local application imports
-# 'main' 브랜치의 폼들과 'sonne' 브랜치의 폼을 병합한 버전을 임포트합니다.
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
-from .models import Post, Comment, Like, Notification, Follow
+from .models import Post, Comment, Like, Notification, Follow, Message, Room
 
-# 'main' 브랜치의 모범 사례를 따라 get_user_model() 사용
+# Get the User model
 User = get_user_model()
 
-# 'sonne' 브랜치의 'GET' 방식 뷰를 채택 (병합된 signup.html과 호환됨)
 def check_username(request):
     """Check if a username is already taken (for AJAX request)."""
     username = request.GET.get('username', None)
@@ -31,9 +29,8 @@ def check_username(request):
     }
     return JsonResponse(data)
 
-# 'main' 브랜치의 DB 연동 뷰를 채택
 def index(request):
-    posts = Post.objects.all().order_by('-created_at')
+    posts = Post.objects.select_related('user').all().order_by('-created_at')
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
@@ -43,22 +40,20 @@ def index(request):
     context = {'posts': posts}
     return render(request, 'main/index.html', context)
 
-# 'main' 브랜치의 뷰를 채택 (messages 프레임워크 사용)
 def signup_view(request):
     """Handle user signup."""
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user) # 회원가입 후 바로 로그인
+            login(request, user) # Log in after signup
             username = form.cleaned_data.get('username')
-            messages.success(request, f'계정이 생성되었습니다: {username}')
+            messages.success(request, f'Account created for {username}')
             return redirect('index')
     else:
         form = CustomUserCreationForm()
     return render(request, 'main/signup.html', {'form': form})
 
-# 'sonne' 브랜치에만 있던 이메일 활성화 뷰
 def activate(request, uidb64, token):
     """Activate user account from email link."""
     try:
@@ -73,10 +68,8 @@ def activate(request, uidb64, token):
         login(request, user)
         return redirect('index')
     else:
-        # 이 템플릿이 필요합니다.
-        return render(request, 'main/activation_invalid.html') 
+        return render(request, 'main/activation_invalid.html')
 
-# 'sonne' 브랜치의 표준 뷰 로직을 채택 (form.errors를 템플릿에서 처리)
 def login_view(request):
     """Handle user login."""
     if request.method == 'POST':
@@ -87,27 +80,21 @@ def login_view(request):
             return redirect('index')
     else:
         form = AuthenticationForm()
-    
-    # 참고: placeholder 추가 로직은 forms.py로 이동했으므로 여기서 제거합니다.
     return render(request, 'main/login.html', {'form': form})
 
-# 공통 뷰
 def logout_view(request):
     """Handle user logout."""
     logout(request)
     return redirect('index')
 
-# 'sonne' 브랜치에만 있던 placeholder 뷰들
 def search(request):
     query = request.GET.get('q')
     if query:
-        # 'username' 또는 'name' 필드에서 쿼리를 포함하는 사용자를 검색합니다.
         users = User.objects.filter(
             Q(username__icontains=query) | Q(name__icontains=query)
         )
     else:
-        users = User.objects.none() # 쿼리가 없으면 아무도 반환하지 않습니다.
-
+        users = User.objects.none()
     context = {
         'query': query,
         'users': users
@@ -116,48 +103,68 @@ def search(request):
 
 @login_required
 def messages_view(request):
-    # Get all users with whom the current user has exchanged messages
-    # This is a bit complex, need to find distinct users from both sent and received messages
-    sent_to_users = Message.objects.filter(sender=request.user).values_list('receiver', flat=True)
-    received_from_users = Message.objects.filter(receiver=request.user).values_list('sender', flat=True)
-    
-    all_participant_ids = list(set(list(sent_to_users) + list(received_from_users)))
-    
-    # Exclude current user from the list
-    if request.user.id in all_participant_ids:
-        all_participant_ids.remove(request.user.id)
+    user = request.user
 
-    conversations = []
-    for user_id in all_participant_ids:
-        other_user = User.objects.get(id=user_id)
-        last_message = Message.objects.filter(
-            Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
-        ).order_by('-timestamp').first()
-        
-        unread_count = Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).count()
-        
-        conversations.append({
-            'other_user': other_user,
-            'last_message': last_message,
-            'unread_count': unread_count
-        })
+    # Get all users the current user has had a conversation with
+    participants = User.objects.filter(
+        Q(sent_messages__receiver=user) | Q(received_messages__sender=user)
+    ).distinct().exclude(pk=user.pk)
+
+    # Subquery to get the last message content for each conversation
+    last_message_content_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('content')[:1]
+
+    # Subquery to get the last message timestamp for each conversation
+    last_message_ts_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('timestamp')[:1]
     
-    # Sort conversations by last message timestamp
-    conversations.sort(key=lambda x: x['last_message'].timestamp if x['last_message'] else None, reverse=True)
+    # Subquery to get the last message sender for each conversation
+    last_message_sender_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('sender__username')[:1]
+
+    # Subquery to get the count of unread messages from each user
+    unread_count_subquery = Message.objects.filter(
+        sender=OuterRef('pk'), receiver=user, is_read=False
+    ).values('pk').annotate(count=Count('pk')).values('count')
+
+    # Annotate the participants with the last message details and unread count
+    conversations = participants.annotate(
+        last_message_content=Subquery(last_message_content_subquery),
+        last_message_ts=Subquery(last_message_ts_subquery),
+        last_message_sender=Subquery(last_message_sender_subquery),
+        unread_count=Subquery(unread_count_subquery)
+    ).order_by('-last_message_ts')
+    
+    # The template needs to be adjusted to handle the annotated fields.
+    # I will create a list of dictionaries to pass to the template
+    # to maintain a similar structure to what was there before.
+    
+    conversation_list = []
+    for p in conversations:
+        conversation_list.append({
+            'other_user': p,
+            'last_message': {
+                'content': p.last_message_content,
+                'timestamp': p.last_message_ts,
+                'sender': {'username': p.last_message_sender}
+            },
+            'unread_count': p.unread_count if p.unread_count else 0
+        })
 
     context = {
-        'conversations': conversations
+        'conversations': conversation_list
     }
     return render(request, 'main/messages.html', context)
 
 @login_required
 def notifications(request):
     notifications = request.user.notifications.all()
-    # 알림을 읽음으로 표시
     notifications.update(is_read=True)
     return render(request, 'main/notifications.html', {'notifications': notifications})
 
-# 'main' 브랜치의 뷰 (create 뷰는 공통이었음)
 @login_required
 def create(request):
     if request.method == 'POST':
@@ -166,27 +173,22 @@ def create(request):
             post = form.save(commit=False)
             post.user = request.user
             post.save()
-            # 'my_profile' 대신 'profile' URL 이름으로 수정 (urls.py 기준)
-            return redirect('profile') 
+            return redirect('profile')
     else:
         form = PostForm()
     return render(request, 'main/create.html', {'form': form})
 
-# 'main' 브랜치의 DB 연동 뷰를 채택
 @login_required
 def profile(request):
-    # 자신의 프로필 페이지로 리디렉션
     return redirect('user_profile', username=request.user.username)
 
 @login_required
 def user_profile(request, username):
-    # 다른 사용자의 프로필을 보거나, 자신의 프로필을 봄
     user = get_object_or_404(User, username=username)
-    posts = user.posts.all().order_by('-created_at')
+    posts = user.posts.select_related('user').all().order_by('-created_at')
 
     is_following = False
     if request.user.is_authenticated:
-        # 현재 로그인한 유저가 이 프로필의 유저를 팔로우하고 있는지 확인
         is_following = Follow.objects.filter(from_user=request.user, to_user=user).exists()
         
         user_likes = Like.objects.filter(
@@ -199,7 +201,7 @@ def user_profile(request, username):
     following_count = user.following.count()
 
     context = {
-        'user': user, 
+        'user': user,
         'posts': posts,
         'is_following': is_following,
         'follower_count': follower_count,
@@ -213,21 +215,17 @@ def follow_toggle(request, username):
         to_user = get_object_or_404(User, username=username)
         from_user = request.user
 
-        # 사용자가 자기 자신을 팔로우하는 것을 방지
         if from_user == to_user:
             return JsonResponse({'status': 'error', 'message': 'You cannot follow yourself.'}, status=400)
 
         follow, created = Follow.objects.get_or_create(from_user=from_user, to_user=to_user)
 
         if not created:
-            # 이미 팔로우하고 있었으면 언팔로우
             follow.delete()
             is_following = False
         else:
-            # 새로 팔로우
             is_following = True
 
-        # 팔로워/팔로잉 수 계산
         follower_count = to_user.followers.count()
         following_count = from_user.following.count()
 
@@ -257,12 +255,10 @@ def send_message(request, username):
 def conversation(request, username):
     other_user = get_object_or_404(User, username=username)
     
-    # Get messages between current user and other_user
     messages = Message.objects.filter(
         Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
     ).order_by('timestamp')
 
-    # Mark messages received by the current user from the other_user as read
     Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).update(is_read=True)
 
     context = {
@@ -271,30 +267,25 @@ def conversation(request, username):
     }
     return render(request, 'main/messages.html', context)
 
-
-
-# 'main' 브랜치에만 있던 프로필 수정 뷰
 @login_required
 def edit_profile(request):
     if request.method == 'POST':
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, '프로필이 성공적으로 업데이트되었습니다.')
+            messages.success(request, 'Profile updated successfully.')
             return redirect('profile')
     else:
         form = ProfileEditForm(instance=request.user)
     return render(request, 'main/edit_profile.html', {'form': form})
 
-# 'main' 브랜치에만 있던 댓글 추가 뷰
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     if request.method == 'POST':
         text = request.POST.get('text')
-        if text: # 빈 댓글 방지
+        if text:
             comment = Comment.objects.create(user=request.user, post=post, text=text)
-            # 알림 생성 (자신이 작성한 게시물에 댓글을 달 때는 제외)
             if post.user != request.user:
                 Notification.objects.create(
                     user=post.user,
@@ -303,10 +294,8 @@ def add_comment(request, post_id):
                     post=post,
                     comment=comment
                 )
-    # 'profile' 대신 'index'로 리디렉션하는 것이 UX에 더 좋습니다.
-    return redirect('index') 
+    return redirect('index')
 
-# 'main' 브랜치에만 있던 좋아요 뷰
 @login_required
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -317,7 +306,6 @@ def like_post(request, post_id):
         liked = False
     else:
         liked = True
-        # 알림 생성 (자신이 작성한 게시물에 좋아요를 누를 때는 제외)
         if post.user != request.user:
             Notification.objects.create(
                 user=post.user,
