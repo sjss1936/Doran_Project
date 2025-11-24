@@ -19,11 +19,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-1-zid060+np8u2opd0y(@1yb%3ht#fa@2ls6pltv4qdh!-wycl'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-<<<<<<< HEAD
+
 # 환경 변수에서 DEBUG 값을 읽고, 문자열 'True'일 때만 True로 설정합니다.
 # 로컬 테스트용 EC2 IP 주소를 여기에 추가하세요. (예: '3.35.11.230')
-=======
->>>>>>> f8aaaac87b76d0b1fd74cced577cac47ef93f4bf
+
 DEBUG = True
 
 ALLOWED_HOSTS = [
