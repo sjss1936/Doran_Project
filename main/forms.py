@@ -1,28 +1,73 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
+from .models import User, Post
 
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(
-        label="이메일 주소",
-        required=True,
-        widget=forms.EmailInput(attrs={'placeholder': '이메일 주소'})
-    )
-
+    """
+    'main' 브랜치의 커스텀 필드('name', 'email', 'phone_number')를 사용하면서,
+    'sonne' 브랜치의 스타일(placeholder 사용, label 제거)을 적용합니다.
+    """
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('username', 'email') # password 필드는 UserCreationForm에 이미 포함되어 있습니다.
+        fields = UserCreationForm.Meta.fields + ('name', 'email', 'phone_number')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # UserCreationForm의 기본 필드에 placeholder 추가
-        self.fields['username'].widget.attrs.update({'placeholder': '사용자 이름'})
-        self.fields['password1'].widget.attrs.update({'placeholder': '비밀번호'})
-        self.fields['password2'].widget.attrs.update({'placeholder': '비밀번호 확인'})
+        
+        placeholders = {
+            'username': '아이디',
+            'name': '이름',
+            'email': '이메일',
+            'phone_number': '전화번호',
+            'password1': '비밀번호',
+            'password2': '비밀번호 확인',
+        }
 
-        # Django가 자동으로 생성하는 라벨과 도움말 텍스트 제거
-        self.fields['username'].label = ""
-        self.fields['email'].label = ""
-        self.fields['password1'].label = ""
-        self.fields['password2'].label = ""
-        self.fields['password1'].help_text = None
+        for field_name, placeholder_text in placeholders.items():
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({'placeholder': placeholder_text})
+                self.fields[field_name].label = ""
+
+        if 'password1' in self.fields:
+            self.fields['password1'].help_text = None
+
+class PostForm(forms.ModelForm):
+    """
+    'main' 브랜치의 PostForm에 'sonne' 브랜치의 스타일을 적용합니다.
+    """
+    class Meta:
+        model = Post
+        fields = ['image', 'caption']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].label = ""
+        self.fields['caption'].label = ""
+        self.fields['caption'].widget.attrs.update({'placeholder': '내용을 입력하세요...'})
+
+
+class ProfileEditForm(forms.ModelForm):
+    """
+    'main' 브랜치의 ProfileEditForm에 'sonne' 브랜치의 스타일을 적용합니다.
+    """
+    class Meta:
+        model = User
+        fields = ['name', 'bio', 'profile_picture', 'cover_image']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        placeholders = {
+            'name': '이름',
+            'bio': '자기소개',
+        }
+
+        for field_name, placeholder_text in placeholders.items():
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs.update({'placeholder': placeholder_text})
+                self.fields[field_name].label = ""
+
+        if 'profile_picture' in self.fields:
+            self.fields['profile_picture'].label = "프로필 사진"
+        if 'cover_image' in self.fields:
+            self.fields['cover_image'].label = "커버 이미지"

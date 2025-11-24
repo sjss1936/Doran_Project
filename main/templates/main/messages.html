@@ -1,10 +1,27 @@
 {% extends 'main/base.html' %}
 {% load static %}
+{% load main_filters %}
 
 {% block body_class %}messages-page{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'main/css/messages_instagram.css' %}">
+<style>
+    .unread-badge {
+        background-color: #ff3b30;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: auto; /* Pushes the badge to the right */
+    }
+    .no-conversations {
+        padding: 20px;
+        text-align: center;
+        color: #8e8e8e;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,167 +31,126 @@
             <h2>Messages</h2>
         </div>
         <div class="user-list">
-            {% for u in users %}
-                {% if u.username != request.user.username %}
-                <div class="user-item" data-username="{{ u.username }}">
-                    <img src="{% if u.profile.profile_picture %}{{ u.profile.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ u.username }}">
+            {% for conversation in conversations %}
+                <a href="{% url 'conversation' username=conversation.other_user.username %}" class="user-item">
+                    {% if conversation.other_user.profile_picture %}
+                        <img src="{{ conversation.other_user.profile_picture.url }}" alt="{{ conversation.other_user.username }}">
+                    {% else %}
+                        <img src="{% static 'main/img/user1.png' %}" alt="{{ conversation.other_user.username }}">
+                    {% endif %}
                     <div class="user-info">
-                        <strong>{{ u.username }}</strong>
-                        <span>{% if u.last_message %}{{ u.last_message.content }}{% else %}Start a conversation{% endif %}</span>
+                        <strong>{{ conversation.other_user.username }}</strong>
+                        {% if conversation.last_message.content %}
+                            <span>{{ conversation.last_message.content|truncatechars:30 }}</span>
+                        {% else %}
+                            <span>Start a conversation</span>
+                        {% endif %}
+                        {% if conversation.unread_count > 0 %}
+                            <span class="unread-badge">{{ conversation.unread_count }}</span>
+                        {% endif %}
                     </div>
-                </div>
-                {% endif %}
+                </a>
+            {% empty %}
+                <p class="no-conversations">No conversations yet.</p>
             {% endfor %}
         </div>
     </div>
     <div class="chat-window">
-        <div id="chat-placeholder" class="chat-placeholder">
-            <img src="{% static 'main/img/message.png' %}" alt="Messages">
-            <h2>Your Messages</h2>
-            <p>Send private photos and messages to a friend or group.</p>
-            <button class="btn btn-primary">Send Message</button>
-        </div>
-        <div id="chat-content" class="chat-content" style="display: none;">
-            <div class="chat-header">
-                <img src="{% static 'main/img/user1.png' %}" alt="" id="chat-header-img">
-                <strong id="chat-header-username"></strong>
+        {% if other_user %}
+            <div id="chat-content" class="chat-content">
+                <div class="chat-header">
+                    {% if other_user.profile_picture %}
+                        <img src="{{ other_user.profile_picture.url }}" alt="{{ other_user.username }}" id="chat-header-img">
+                    {% else %}
+                        <img src="{% static 'main/img/user1.png' %}" alt="{{ other_user.username }}" id="chat-header-img">
+                    {% endif %}
+                    <strong id="chat-header-username">{{ other_user.username }}</strong>
+                </div>
+                <div id="chat-log" class="chat-log">
+                    {% for message in messages %}
+                        <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                            <div>{{ message.content }}</div>
+                            <small>{{ message.timestamp|date:"H:i" }}</small>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="chat-input-form">
+                    <input id="chat-message-input" type="text" placeholder="Message...">
+                    <button id="chat-message-submit" data-username="{{ other_user.username }}">Send</button>
+                </div>
             </div>
-            <div id="chat-log" class="chat-log"></div>
-            <div class="chat-input-form">
-                <input id="chat-message-input" type="text" placeholder="Message...">
-                <button id="chat-message-submit">Send</button>
+        {% else %}
+            <div id="chat-placeholder" class="chat-placeholder">
+                <img src="{% static 'main/img/message.png' %}" alt="Messages">
+                <h2>Your Messages</h2>
+                <p>Send private photos and messages to a friend or group.</p>
+                <button class="btn btn-primary">Send Message</button>
             </div>
-        </div>
+        {% endif %}
     </div>
-</div>
-
-<script>
-    const userUsername = "{{ request.user.username }}";
-    let currentRoomName = null;
-    let chatSocket = null;
-    let lastMessageId = 0; // To keep track of the last message ID for initial load
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const userItems = document.querySelectorAll('.user-item');
-        const chatPlaceholder = document.getElementById('chat-placeholder');
-        const chatContent = document.getElementById('chat-content');
-        const chatLog = document.getElementById('chat-log');
+    
+    <script>
+        // Standard Django function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
         const chatMessageInput = document.getElementById('chat-message-input');
         const chatMessageSubmit = document.getElementById('chat-message-submit');
-        const chatHeaderUsername = document.getElementById('chat-header-username');
-        const chatHeaderImg = document.getElementById('chat-header-img');
-
-        userItems.forEach(item => {
-            item.addEventListener('click', function () {
-                userItems.forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-
-                const otherUsername = this.dataset.username;
-                chatHeaderUsername.textContent = otherUsername;
-                chatHeaderImg.src = this.querySelector('img').src;
-
-                chatPlaceholder.style.display = 'none';
-                chatContent.style.display = 'flex';
-                chatLog.innerHTML = ''; // Clear previous chat logs
-                lastMessageId = 0; // Reset last message ID for new room
-
-                const usernames = [userUsername, otherUsername].sort();
-                currentRoomName = `chat_${usernames[0]}_${usernames[1]}`;
-
-                // Close existing WebSocket if open
-                if (chatSocket) {
-                    chatSocket.close();
+        const chatLog = document.getElementById('chat-log');
+    
+        if (chatMessageSubmit) {
+            chatMessageSubmit.addEventListener('click', function() {
+                const messageContent = chatMessageInput.value.trim();
+                const receiverUsername = chatMessageSubmit.dataset.username;
+    
+                if (messageContent) {
+                    fetch(`/messages/${receiverUsername}/send/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ 'content': messageContent })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            // Append message to chat log
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add('message', 'sent');
+                            messageDiv.innerHTML = `<div>${messageContent}</div><small>Now</small>`;
+                            chatLog.appendChild(messageDiv);
+                            chatMessageInput.value = '';
+                            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+                        } else {
+                            console.error('Error sending message:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Fetch error:', error));
                 }
-
-                // Establish new WebSocket connection
-                chatSocket = new WebSocket(
-                    'ws://' + window.location.host + '/ws/chat/' + currentRoomName + '/'
-                );
-
-                chatSocket.onopen = function(e) {
-                    console.log('WebSocket connection opened.');
-                    // Fetch historical messages after connection is open
-                    fetchHistoricalMessages(currentRoomName);
-                };
-
-                chatSocket.onmessage = function(e) {
-                    const data = JSON.parse(e.data);
-                    if (data.type === 'chat_message') {
-                        const messageHtml = createMessageHtml(data.username, data.message, data.profile_picture_url, data.timestamp, data.message_id);
-                        chatLog.innerHTML += messageHtml;
-                        chatLog.scrollTop = chatLog.scrollHeight;
-                        lastMessageId = Math.max(lastMessageId, data.message_id);
-                    }
-                };
-
-                chatSocket.onclose = function(e) {
-                    console.log('WebSocket connection closed unexpectedly.');
-                };
-
-                chatSocket.onerror = function(e) {
-                    console.error('WebSocket error:', e);
-                };
             });
-        });
-
-        function fetchHistoricalMessages(roomName) {
-            fetch(`/messages/get/${roomName}/?last_message_id=${lastMessageId}`)
-                .then(response => response.json())
-                .then(data => {
-                    data.messages.forEach(msg => {
-                        const messageHtml = createMessageHtml(msg.username, msg.message, msg.profile_picture_url, msg.timestamp, msg.id);
-                        chatLog.innerHTML += messageHtml;
-                        lastMessageId = Math.max(lastMessageId, msg.id);
-                    });
-                    chatLog.scrollTop = chatLog.scrollHeight;
-                })
-                .catch(error => console.error('Error fetching historical messages:', error));
+    
+            chatMessageInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    chatMessageSubmit.click();
+                }
+            });
         }
-
-        function createMessageHtml(user, message, profilePictureUrl, timestamp, messageId) {
-            const messageClass = user === userUsername ? 'sent' : 'received';
-            const profileImgSrc = profilePictureUrl ? profilePictureUrl : "{% static 'main/img/user1.png' %}";
-            const formattedTimestamp = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return `
-                <div class="message ${messageClass}" data-message-id="${messageId}">
-                    <img src="${profileImgSrc}" alt="${user}" class="message-profile-pic">
-                    <div>
-                        <p>${message}</p>
-                        <span class="timestamp">${formattedTimestamp}</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function sendMessage() {
-            if (!currentRoomName) {
-                console.error('No chat room selected.');
-                return;
-            }
-
-            const message = chatMessageInput.value;
-            if (message.trim() === '') {
-                return;
-            }
-
-            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                    'message': message,
-                    'username': userUsername,
-                }));
-                chatMessageInput.value = '';
-            } else {
-                console.error('WebSocket is not open. Message not sent.');
-            }
-        }
-
-        chatMessageSubmit.addEventListener('click', sendMessage);
-        chatMessageInput.addEventListener('keyup', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    });
-</script>
+    </script>
+    
+</div>
 {% endblock %}

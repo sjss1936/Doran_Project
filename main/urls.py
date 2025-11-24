@@ -2,17 +2,29 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # --- Common URLs ---
     path('', views.index, name='index'),
     path('search/', views.search, name='search'),
-    path('messages/get/<str:room_name>/', views.get_messages_ajax, name='get_messages_ajax'),
-    path('messages/<str:room_name>/', views.room_ajax, name='room_ajax'),
-    path('messages/', views.messages, name='messages'),
+    path('messages/', views.messages_view, name='messages'),
+    path('messages/<str:username>/', views.conversation, name='conversation'),
+    path('messages/<str:username>/send/', views.send_message, name='send_message'),
     path('notifications/', views.notifications, name='notifications'),
     path('create/', views.create, name='create'),
-    path('profile/', views.profile, name='profile'),
+    
+    # --- Authentication URLs ---
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),
     path('check_username/', views.check_username, name='check_username'),
-    path('activate/<str:uidb64>/<str:token>/', views.activate, name='activate'),
+    path('activate/<str:uidb64>/<str:token>/', views.activate, name='activate'), 
+
+    # --- Post and Profile URLs ---
+    path('post/<int:post_id>/comment/', views.add_comment, name='add_comment'),
+    path('post/<int:post_id>/like/', views.like_post, name='like_post'),
+    
+    # --- Profile URLs (order is important) ---
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<str:username>/', views.user_profile, name='user_profile'),
+    path('profile/<str:username>/follow/', views.follow_toggle, name='follow_toggle'),
+    path('profile/', views.profile, name='profile'), 
 ]

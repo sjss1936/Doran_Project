@@ -1,40 +1,42 @@
 # Django-related imports
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
+from django.db.models import Exists, OuterRef, Q, Max, Subquery, Count
+import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 # Local application imports
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
+from .models import Post, Comment, Like, Notification, Follow, Message, Room
 
-# Create your views here.
+# Get the User model
+User = get_user_model()
+
+def check_username(request):
+    """Check if a username is already taken (for AJAX request)."""
+    username = request.GET.get('username', None)
+    data = {
+        'is_taken': User.objects.filter(username__iexact=username).exists()
+    }
+    return JsonResponse(data)
 
 def index(request):
-    """Main feed page."""
-    # This is sample data. You might want to fetch real data from the database.
-    posts = [
-        {
-            'username': 'sikboyyy',
-            'profile_picture': '/static/main/img/user1.png',
-            'image_url': '/static/main/img/aa.jpg',
-            'likes': 1234,
-            'caption': '나 좀 잘생긴 거 같아.'
-        },
-        {
-            'username': 'sikboyyy',
-            'profile_picture': '/static/main/img/user1.png',
-            'image_url': '/static/main/img/bb.jpg',
-            'likes': 567,
-            'caption': '이건 좀 귀여운듯.'
-        }
-    ]
+    posts = Post.objects.select_related('user').all().order_by('-created_at')
+    if request.user.is_authenticated:
+        user_likes = Like.objects.filter(
+            post=OuterRef('pk'),
+            user=request.user
+        )
+        posts = posts.annotate(user_has_liked=Exists(user_likes))
     context = {'posts': posts}
     return render(request, 'main/index.html', context)
 
@@ -43,10 +45,10 @@ def signup_view(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = True # 사용자를 바로 활성화
-            user.save()
-            login(request, user) # 회원가입 후 바로 로그인
+            user = form.save()
+            login(request, user) # Log in after signup
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}')
             return redirect('index')
     else:
         form = CustomUserCreationForm()
@@ -78,10 +80,6 @@ def login_view(request):
             return redirect('index')
     else:
         form = AuthenticationForm()
-    
-    form.fields['username'].widget.attrs.update({'placeholder': '사용자 이름'})
-    form.fields['password'].widget.attrs.update({'placeholder': '비밀번호'})
-    
     return render(request, 'main/login.html', {'form': form})
 
 def logout_view(request):
@@ -89,106 +87,231 @@ def logout_view(request):
     logout(request)
     return redirect('index')
 
-def check_username(request):
-    """Check if a username is already taken (for AJAX request)."""
-    username = request.GET.get('username', None)
-    data = {
-        'is_taken': User.objects.filter(username__iexact=username).exists()
-    }
-    return JsonResponse(data)
-
 def search(request):
-    return render(request, 'main/search.html')
-
-def notifications(request):
-    return render(request, 'main/notifications.html')
-
-def create(request):
-    return render(request, 'main/create.html')
-
-def profile(request):
-    user_profile = {
-        'name': 'sikboyyy',
-        'username': '@sikboyyy',
-        'bio': 'This is my Doran project. I love coding and building awesome things.',
-        'banner_url': '/static/main/img/bb.jpg',
-        'profile_picture_url': '/static/main/img/user1.png',
-        'following': 123,
-        'followers': 456,
-    }
-    posts = [
-        {
-            'username': 'sikboyyy',
-            'profile_picture': '/static/main/img/user1.png',
-            'image_url': '/static/main/img/aa.jpg',
-            'likes': 1234,
-            'caption': '나 좀 잘생긴 거 같아.'
-        },
-        {
-            'username': 'sikboyyy',
-            'profile_picture': '/static/main/img/user1.png',
-            'image_url': '/static/main/img/bb.jpg',
-            'likes': 567,
-            'caption': '이건 좀 귀여운듯.'
-        }
-    ]
+    query = request.GET.get('q')
+    if query:
+        users = User.objects.filter(
+            Q(username__icontains=query) | Q(name__icontains=query)
+        )
+    else:
+        users = User.objects.none()
     context = {
-        'user': user_profile,
-        'posts': posts
+        'query': query,
+        'users': users
+    }
+    return render(request, 'main/search.html', context)
+
+@login_required
+def messages_view(request):
+    user = request.user
+
+    # Get all users the current user has had a conversation with
+    participants = User.objects.filter(
+        Q(sent_messages__receiver=user) | Q(received_messages__sender=user)
+    ).distinct().exclude(pk=user.pk)
+
+    # Subquery to get the last message content for each conversation
+    last_message_content_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('content')[:1]
+
+    # Subquery to get the last message timestamp for each conversation
+    last_message_ts_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('timestamp')[:1]
+    
+    # Subquery to get the last message sender for each conversation
+    last_message_sender_subquery = Message.objects.filter(
+        (Q(sender=user, receiver=OuterRef('pk')) | Q(sender=OuterRef('pk'), receiver=user))
+    ).order_by('-timestamp').values('sender__username')[:1]
+
+    # Subquery to get the count of unread messages from each user
+    unread_count_subquery = Message.objects.filter(
+        sender=OuterRef('pk'), receiver=user, is_read=False
+    ).values('pk').annotate(count=Count('pk')).values('count')
+
+    # Annotate the participants with the last message details and unread count
+    conversations = participants.annotate(
+        last_message_content=Subquery(last_message_content_subquery),
+        last_message_ts=Subquery(last_message_ts_subquery),
+        last_message_sender=Subquery(last_message_sender_subquery),
+        unread_count=Subquery(unread_count_subquery)
+    ).order_by('-last_message_ts')
+    
+    # The template needs to be adjusted to handle the annotated fields.
+    # I will create a list of dictionaries to pass to the template
+    # to maintain a similar structure to what was there before.
+    
+    conversation_list = []
+    for p in conversations:
+        conversation_list.append({
+            'other_user': p,
+            'last_message': {
+                'content': p.last_message_content,
+                'timestamp': p.last_message_ts,
+                'sender': {'username': p.last_message_sender}
+            },
+            'unread_count': p.unread_count if p.unread_count else 0
+        })
+
+    context = {
+        'conversations': conversation_list
+    }
+    return render(request, 'main/messages.html', context)
+
+@login_required
+def notifications(request):
+    notifications = request.user.notifications.all()
+    notifications.update(is_read=True)
+    return render(request, 'main/notifications.html', {'notifications': notifications})
+
+@login_required
+def create(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.user = request.user
+            post.save()
+            return redirect('profile')
+    else:
+        form = PostForm()
+    return render(request, 'main/create.html', {'form': form})
+
+@login_required
+def profile(request):
+    return redirect('user_profile', username=request.user.username)
+
+@login_required
+def user_profile(request, username):
+    user = get_object_or_404(User, username=username)
+    posts = user.posts.select_related('user').all().order_by('-created_at')
+
+    is_following = False
+    if request.user.is_authenticated:
+        is_following = Follow.objects.filter(from_user=request.user, to_user=user).exists()
+        
+        user_likes = Like.objects.filter(
+            post=OuterRef('pk'),
+            user=request.user
+        )
+        posts = posts.annotate(user_has_liked=Exists(user_likes))
+
+    follower_count = user.followers.count()
+    following_count = user.following.count()
+
+    context = {
+        'user': user,
+        'posts': posts,
+        'is_following': is_following,
+        'follower_count': follower_count,
+        'following_count': following_count,
     }
     return render(request, 'main/profile.html', context)
 
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from .models import Room, Message, Profile # Profile is still needed for user info
-
-# These views are placeholders and can be developed further.
 @login_required
-def messages(request):
-    users = User.objects.exclude(id=request.user.id)
-    return render(request, 'main/messages.html', {'users': users})
+def follow_toggle(request, username):
+    if request.method == 'POST':
+        to_user = get_object_or_404(User, username=username)
+        from_user = request.user
 
-@login_required
-def room_ajax(request, room_name):
-    room, created = Room.objects.get_or_create(name=room_name)
-    messages = Message.objects.filter(room=room).order_by('timestamp').select_related('user__profile')
+        if from_user == to_user:
+            return JsonResponse({'status': 'error', 'message': 'You cannot follow yourself.'}, status=400)
 
-    # Extract other username from room_name
-    usernames_in_room = room_name.split('_')[1:] # ['user1', 'user2']
-    other_username = next((u for u in usernames_in_room if u != request.user.username), None)
-    
-    other_user_profile_picture_url = None
-    if other_username:
-        try:
-            other_user = User.objects.get(username=other_username)
-            if other_user.profile.profile_picture:
-                other_user_profile_picture_url = other_user.profile.profile_picture.url
-        except User.DoesNotExist:
-            pass # Handle case where other user might not exist
+        follow, created = Follow.objects.get_or_create(from_user=from_user, to_user=to_user)
 
-    return render(request, 'main/messages.html', {
-        'room_name': room_name,
-        'messages': messages,
-        'username': request.user.username,
-        'other_user_profile_picture_url': other_user_profile_picture_url,
-    })
+        if not created:
+            follow.delete()
+            is_following = False
+        else:
+            is_following = True
 
-@login_required
-def get_messages_ajax(request, room_name):
-    room, created = Room.objects.get_or_create(name=room_name)
-    last_message_id = request.GET.get('last_message_id', 0)
-    
-    messages = Message.objects.filter(room=room, id__gt=last_message_id).order_by('timestamp').select_related('user__profile')
-    
-    messages_data = []
-    for message in messages:
-        profile_picture_url = message.user.profile.profile_picture.url if message.user.profile.profile_picture else ''
-        messages_data.append({
-            'id': message.id,
-            'message': message.content,
-            'username': message.user.username,
-            'profile_picture_url': profile_picture_url,
-            'timestamp': message.timestamp.isoformat(),
+        follower_count = to_user.followers.count()
+        following_count = from_user.following.count()
+
+        return JsonResponse({
+            'status': 'ok',
+            'is_following': is_following,
+            'follower_count': follower_count,
+            'following_count': following_count
         })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+@login_required
+def send_message(request, username):
+    if request.method == 'POST':
+        receiver = get_object_or_404(User, username=username)
+        sender = request.user
+        data = json.loads(request.body)
+        content = data.get('content')
+
+        if content:
+            Message.objects.create(sender=sender, receiver=receiver, content=content)
+            return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
+        return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty.'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+@login_required
+def conversation(request, username):
+    other_user = get_object_or_404(User, username=username)
     
-    return JsonResponse({'messages': messages_data})
+    messages = Message.objects.filter(
+        Q(sender=request.user, receiver=other_user) | Q(sender=other_user, receiver=request.user)
+    ).order_by('timestamp')
+
+    Message.objects.filter(sender=other_user, receiver=request.user, is_read=False).update(is_read=True)
+
+    context = {
+        'other_user': other_user,
+        'messages': messages
+    }
+    return render(request, 'main/messages.html', context)
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully.')
+            return redirect('profile')
+    else:
+        form = ProfileEditForm(instance=request.user)
+    return render(request, 'main/edit_profile.html', {'form': form})
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if request.method == 'POST':
+        text = request.POST.get('text')
+        if text:
+            comment = Comment.objects.create(user=request.user, post=post, text=text)
+            if post.user != request.user:
+                Notification.objects.create(
+                    user=post.user,
+                    created_by=request.user,
+                    notification_type='comment',
+                    post=post,
+                    comment=comment
+                )
+    return redirect('index')
+
+@login_required
+def like_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    like, created = Like.objects.get_or_create(user=request.user, post=post)
+    
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+        if post.user != request.user:
+            Notification.objects.create(
+                user=post.user,
+                created_by=request.user,
+                notification_type='like',
+                post=post
+            )
+            
+    return JsonResponse({'likes_count': post.likes.count(), 'liked': liked})
