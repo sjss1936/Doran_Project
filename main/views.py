@@ -13,6 +13,8 @@ import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # Local application imports
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
@@ -287,12 +289,20 @@ def add_comment(request, post_id):
         if text:
             comment = Comment.objects.create(user=request.user, post=post, text=text)
             if post.user != request.user:
-                Notification.objects.create(
+                notification = Notification.objects.create(
                     user=post.user,
                     created_by=request.user,
                     notification_type='comment',
                     post=post,
                     comment=comment
+                )
+                # Broadcast the notification
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{post.user.id}",
+                    {
+                        "type": "unread_notification_count_update",
+                    }
                 )
     return redirect('index')
 
@@ -307,11 +317,19 @@ def like_post(request, post_id):
     else:
         liked = True
         if post.user != request.user:
-            Notification.objects.create(
+            notification = Notification.objects.create(
                 user=post.user,
                 created_by=request.user,
                 notification_type='like',
                 post=post
+            )
+            # Broadcast the notification
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"user_{post.user.id}",
+                {
+                    "type": "unread_notification_count_update",
+                }
             )
             
     return JsonResponse({'likes_count': post.likes.count(), 'liked': liked})
