@@ -4,9 +4,6 @@ Django settings for my_project project.
 
 from pathlib import Path
 import os
-# 환경 변수 로드에 필요한 라이브러리 import
-# 이 라이브러리가 설치되어 있어야 합니다: pip install python-dotenv
-from dotenv import load_dotenv, find_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # -------------------------------------------------------------------
@@ -14,20 +11,19 @@ from dotenv import load_dotenv, find_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------------------------
 
-# .env 파일 로드 (BASE_DIR에서 .env 파일을 찾아 환경 변수로 등록)
-# 이 코드가 SECRET_KEY를 읽어오기 전에 실행되어야 합니다.
-load_dotenv(find_dotenv())
 
 
 # Quick-start development settings - unsuitable for production
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# os.environ.get()을 사용하여 환경 변수에서 값을 가져옵니다.
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = 'django-insecure-1-zid060+np8u2opd0y(@1yb%3ht#fa@2ls6pltv4qdh!-wycl'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+<<<<<<< HEAD
 # 환경 변수에서 DEBUG 값을 읽고, 문자열 'True'일 때만 True로 설정합니다.
 # 로컬 테스트용 EC2 IP 주소를 여기에 추가하세요. (예: '3.35.11.230')
+=======
+>>>>>>> f8aaaac87b76d0b1fd74cced577cac47ef93f4bf
 DEBUG = True
 
 ALLOWED_HOSTS = [
