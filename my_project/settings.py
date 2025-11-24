@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 # 환경 변수에서 DEBUG 값을 읽고, 문자열 'True'일 때만 True로 설정합니다.
 # 로컬 테스트용 EC2 IP 주소를 여기에 추가하세요. (예: '3.35.11.230')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
 
 ALLOWED_HOSTS = [
     '3.35.11.230',  # 고객님의 EC2 공인 IP 주소
