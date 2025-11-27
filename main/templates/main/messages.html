@@ -90,65 +90,69 @@
     </div>
     
     <script>
-        // Standard Django function to get CSRF token from cookies
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        const csrftoken = getCookie('csrftoken');
-    
+        const chatWindow = document.querySelector('.chat-window');
+        const chatLog = document.getElementById('chat-log');
         const chatMessageInput = document.getElementById('chat-message-input');
         const chatMessageSubmit = document.getElementById('chat-message-submit');
-        const chatLog = document.getElementById('chat-log');
-    
-        if (chatMessageSubmit) {
-            chatMessageSubmit.addEventListener('click', function() {
-                const messageContent = chatMessageInput.value.trim();
-                const receiverUsername = chatMessageSubmit.dataset.username;
-    
-                if (messageContent) {
-                    fetch(`/messages/${receiverUsername}/send/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrftoken,
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ 'content': messageContent })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            // Append message to chat log
-                            const messageDiv = document.createElement('div');
-                            messageDiv.classList.add('message', 'sent');
-                            messageDiv.innerHTML = `<div>${messageContent}</div><small>Now</small>`;
-                            chatLog.appendChild(messageDiv);
-                            chatMessageInput.value = '';
-                            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
-                        } else {
-                            console.error('Error sending message:', data.message);
-                        }
-                    })
-                    .catch(error => console.error('Fetch error:', error));
+        const otherUserUsername = "{{ other_user.username }}";
+        const currentUserUsername = "{{ request.user.username }}";
+
+        // Scroll to the bottom of the chat log on page load
+        if (chatLog) {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        if (otherUserUsername) {
+            const chatSocket = new WebSocket(
+                'ws://'
+                + window.location.host
+                + '/ws/chat/'
+                + otherUserUsername
+                + '/'
+            );
+
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                const messageDiv = document.createElement('div');
+                const messageInnerDiv = document.createElement('div');
+                const timestampSmall = document.createElement('small');
+
+                messageInnerDiv.textContent = data.message;
+                timestampSmall.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                messageDiv.appendChild(messageInnerDiv);
+                messageDiv.appendChild(timestampSmall);
+
+                if (data.sender === currentUserUsername) {
+                    messageDiv.classList.add('message', 'sent');
+                } else {
+                    messageDiv.classList.add('message', 'received');
                 }
-            });
-    
-            chatMessageInput.addEventListener('keyup', function(event) {
-                if (event.key === 'Enter') {
+                
+                chatLog.appendChild(messageDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            };
+
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+
+            chatMessageInput.focus();
+            chatMessageInput.onkeyup = function(e) {
+                if (e.key === 'Enter') {  // enter, return
                     chatMessageSubmit.click();
                 }
-            });
+            };
+
+            chatMessageSubmit.onclick = function(e) {
+                const message = chatMessageInput.value.trim();
+                if (message) {
+                    chatSocket.send(JSON.stringify({
+                        'message': message
+                    }));
+                    chatMessageInput.value = '';
+                }
+            };
         }
     </script>
     

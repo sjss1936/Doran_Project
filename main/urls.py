@@ -7,7 +7,6 @@ urlpatterns = [
     path('search/', views.search, name='search'),
     path('messages/', views.messages_view, name='messages'),
     path('messages/<str:username>/', views.conversation, name='conversation'),
-    path('messages/<str:username>/send/', views.send_message, name='send_message'),
     path('notifications/', views.notifications, name='notifications'),
     path('create/', views.create, name='create'),
     

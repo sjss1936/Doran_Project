@@ -240,20 +240,6 @@ def follow_toggle(request, username):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 @login_required
-def send_message(request, username):
-    if request.method == 'POST':
-        receiver = get_object_or_404(User, username=username)
-        sender = request.user
-        data = json.loads(request.body)
-        content = data.get('content')
-
-        if content:
-            Message.objects.create(sender=sender, receiver=receiver, content=content)
-            return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
-        return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty.'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
-
-@login_required
 def conversation(request, username):
     other_user = get_object_or_404(User, username=username)
     
