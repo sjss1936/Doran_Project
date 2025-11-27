@@ -31,22 +31,13 @@ def check_username(request):
 
 def index(request):
     posts = Post.objects.select_related('user').all().order_by('-created_at')
-    stories = []
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
             user=request.user
         )
         posts = posts.annotate(user_has_liked=Exists(user_likes))
-        
-        # Get users the current user is following
-        following_users = User.objects.filter(followers__from_user=request.user)
-        stories = following_users
-
-    context = {
-        'posts': posts,
-        'stories': stories
-    }
+    context = {'posts': posts}
     return render(request, 'main/index.html', context)
 
 def signup_view(request):

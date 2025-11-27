@@ -4,15 +4,19 @@
 ﻿
 ﻿{% block content %}
 ﻿<div class="stories">
-    {% for story_user in stories %}
-    <div class="story">
-        <a href="{% url 'user_profile' username=story_user.username %}">
-            <img class="story-image" src="{% if story_user.profile_picture %}{{ story_user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ story_user.username }}">
-            <span>{{ story_user.username }}</span>
-        </a>
-    </div>
-    {% endfor %}
-</div>
+﻿    <div class="story">
+﻿        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김태관">
+﻿        <span>김태관</span>
+﻿    </div>
+﻿    <div class="story">
+﻿        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="손재성">
+﻿        <span>손재성</span>
+﻿    </div>
+﻿    <div class="story">
+﻿        <img class="story-image" src="{% static 'main/img/user1.png' %}" alt="김기원">
+﻿        <span>김기원</span>
+﻿    </div>
+﻿</div>
 ﻿<div class="feed">
 ﻿    {% for post in posts %}
 ﻿    <div class="post">
