@@ -1,5 +1,4 @@
 ﻿{% load static %}
-{% load main_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,13 +58,19 @@
                 <ul>
                     <li><a href="{% url 'index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}"><img src="{% static 'main/img/home.png' %}" alt="홈" class="nav-icon"> 홈</a></li>
                     <li><a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}"><img src="{% static 'main/img/search.png' %}" alt="검색" class="nav-icon"> 검색</a></li>
-                    <li><a href="{% url 'messages' %}" class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}"><img src="{% static 'main/img/message.png' %}" alt="메시지" class="nav-icon"> 메시지</a></li>
+                    <li>
+                        <a href="{% url 'messages' %}" class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}">
+                            <img src="{% static 'main/img/message.png' %}" alt="메시지" class="nav-icon"> 메시지
+                            {% if unread_message_count > 0 %}
+                                <span class="notification-badge" id="message-badge">{{ unread_message_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li>
                         <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
                             <img src="{% static 'main/img/alarm.png' %}" alt="알림" class="nav-icon"> 알림
-                            {% unread_notification_count user as unread_count %}
-                            {% if unread_count > 0 %}
-                                <span class="notification-badge">{{ unread_count }}</span>
+                            {% if unread_notification_count > 0 %}
+                                <span class="notification-badge" id="notification-badge">{{ unread_notification_count }}</span>
                             {% endif %}
                         </a>
                     </li>
@@ -88,5 +93,49 @@
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    {% if user.is_authenticated %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notificationSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/notifications/'
+            );
+
+            notificationSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                
+                if (data.type === 'unread_notification_update') {
+                    updateBadge('notification-badge', data.count);
+                }
+                
+                if (data.type === 'unread_message_update') {
+                    updateBadge('message-badge', data.count);
+                }
+            };
+
+            notificationSocket.onclose = function(e) {
+                console.error('Notifications socket closed unexpectedly');
+            };
+
+            function updateBadge(badgeId, count) {
+                let badge = document.getElementById(badgeId);
+                if (count > 0) {
+                    if (!badge) {
+                        // Create badge if it doesn't exist
+                        const link = document.querySelector(`a[href*="/${badgeId.split('-')[0]}/"]`);
+                        badge = document.createElement('span');
+                        badge.id = badgeId;
+                        badge.className = 'notification-badge';
+                        link.appendChild(badge);
+                    }
+                    badge.textContent = count;
+                } else {
+                    if (badge) {
+                        badge.remove();
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
