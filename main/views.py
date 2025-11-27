@@ -32,7 +32,7 @@ def check_username(request):
     return JsonResponse(data)
 
 def index(request):
-    posts = Post.objects.select_related('user').all().order_by('-created_at')
+    posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
@@ -186,11 +186,18 @@ def profile(request):
 
 @login_required
 def user_profile(request, username):
-    user = get_object_or_404(User, username=username)
-    posts = user.posts.select_related('user').all().order_by('-created_at')
+    user = get_object_or_404(
+        User.objects.annotate(
+            follower_count=Count('followers', distinct=True),
+            following_count=Count('following', distinct=True)
+        ),
+        username=username
+    )
+    
+    posts = user.posts.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
 
     is_following = False
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and request.user != user:
         is_following = Follow.objects.filter(from_user=request.user, to_user=user).exists()
         
         user_likes = Like.objects.filter(
@@ -199,15 +206,12 @@ def user_profile(request, username):
         )
         posts = posts.annotate(user_has_liked=Exists(user_likes))
 
-    follower_count = user.followers.count()
-    following_count = user.following.count()
-
     context = {
         'user': user,
         'posts': posts,
         'is_following': is_following,
-        'follower_count': follower_count,
-        'following_count': following_count,
+        'follower_count': user.follower_count,
+        'following_count': user.following_count,
     }
     return render(request, 'main/profile.html', context)
 
