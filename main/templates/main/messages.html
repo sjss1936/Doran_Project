@@ -1,0 +1,156 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load main_filters %}
+
+{% block body_class %}messages-page{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'main/css/messages_instagram.css' %}">
+<style>
+    .unread-badge {
+        background-color: #ff3b30;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: auto; /* Pushes the badge to the right */
+    }
+    .no-conversations {
+        padding: 20px;
+        text-align: center;
+        color: #8e8e8e;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messages-container">
+    <div class="conversations-list">
+        <div class="list-header">
+            <h2>Messages</h2>
+        </div>
+        <div class="user-list">
+            {% for conversation in conversations %}
+                <a href="{% url 'conversation' username=conversation.other_user.username %}" class="user-item">
+                    {% if conversation.other_user.profile_picture %}
+                        <img src="{{ conversation.other_user.profile_picture.url }}" alt="{{ conversation.other_user.username }}">
+                    {% else %}
+                        <img src="{% static 'main/img/user1.png' %}" alt="{{ conversation.other_user.username }}">
+                    {% endif %}
+                    <div class="user-info">
+                        <strong>{{ conversation.other_user.username }}</strong>
+                        {% if conversation.last_message.content %}
+                            <span>{{ conversation.last_message.content|truncatechars:30 }}</span>
+                        {% else %}
+                            <span>Start a conversation</span>
+                        {% endif %}
+                        {% if conversation.unread_count > 0 %}
+                            <span class="unread-badge">{{ conversation.unread_count }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+            {% empty %}
+                <p class="no-conversations">No conversations yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="chat-window">
+        {% if other_user %}
+            <div id="chat-content" class="chat-content">
+                <div class="chat-header">
+                    {% if other_user.profile_picture %}
+                        <img src="{{ other_user.profile_picture.url }}" alt="{{ other_user.username }}" id="chat-header-img">
+                    {% else %}
+                        <img src="{% static 'main/img/user1.png' %}" alt="{{ other_user.username }}" id="chat-header-img">
+                    {% endif %}
+                    <strong id="chat-header-username">{{ other_user.username }}</strong>
+                </div>
+                <div id="chat-log" class="chat-log">
+                    {% for message in messages %}
+                        <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                            <div>{{ message.content }}</div>
+                            <small>{{ message.timestamp|date:"H:i" }}</small>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="chat-input-form">
+                    <input id="chat-message-input" type="text" placeholder="Message...">
+                    <button id="chat-message-submit" data-username="{{ other_user.username }}">Send</button>
+                </div>
+            </div>
+        {% else %}
+            <div id="chat-placeholder" class="chat-placeholder">
+                <img src="{% static 'main/img/message.png' %}" alt="Messages">
+                <h2>Your Messages</h2>
+                <p>Send private photos and messages to a friend or group.</p>
+                <button class="btn btn-primary">Send Message</button>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        // Standard Django function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
+        const chatMessageInput = document.getElementById('chat-message-input');
+        const chatMessageSubmit = document.getElementById('chat-message-submit');
+        const chatLog = document.getElementById('chat-log');
+    
+        if (chatMessageSubmit) {
+            chatMessageSubmit.addEventListener('click', function() {
+                const messageContent = chatMessageInput.value.trim();
+                const receiverUsername = chatMessageSubmit.dataset.username;
+    
+                if (messageContent) {
+                    fetch(`/messages/${receiverUsername}/send/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ 'content': messageContent })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            // Append message to chat log
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add('message', 'sent');
+                            messageDiv.innerHTML = `<div>${messageContent}</div><small>Now</small>`;
+                            chatLog.appendChild(messageDiv);
+                            chatMessageInput.value = '';
+                            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+                        } else {
+                            console.error('Error sending message:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Fetch error:', error));
+                }
+            });
+    
+            chatMessageInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    chatMessageSubmit.click();
+                }
+            });
+        }
+    </script>
+    
+</div>
+{% endblock %}

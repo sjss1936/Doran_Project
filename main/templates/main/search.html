@@ -1,0 +1,112 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .search-container {
+        max-width: 600px;
+        margin: 20px auto;
+    }
+    .search-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    .search-form {
+        display: flex;
+        margin-bottom: 30px;
+    }
+    .search-form input[type="text"] {
+        flex-grow: 1;
+        padding: 12px;
+        border: 1px solid #dbdbdb;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+    .search-form button {
+        padding: 0 20px;
+        margin-left: 10px;
+        border: none;
+        background-color: #FBC02D;
+        color: white;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .search-results-info {
+        font-size: 14px;
+        color: #8e8e8e;
+        margin-bottom: 20px;
+    }
+    .user-list-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #efefef;
+    }
+    .user-list-item:last-child {
+        border-bottom: none;
+    }
+    .user-list-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+    }
+    .user-list-details {
+        flex-grow: 1;
+    }
+    .user-list-details a {
+        text-decoration: none;
+    }
+    .user-list-details .name {
+        font-weight: 600;
+        color: #262626;
+        font-size: 16px;
+    }
+    .user-list-details .username {
+        color: #8e8e8e;
+        font-size: 14px;
+    }
+</style>
+
+<div class="search-container">
+    <div class="search-header">
+        <h1>사용자 검색</h1>
+    </div>
+
+    <form method="get" action="{% url 'search' %}" class="search-form">
+        <input type="text" name="q" placeholder="검색할 사용자의 이름을 입력하세요" value="{{ query|default:'' }}">
+        <button type="submit">검색</button>
+    </form>
+
+    <div class="search-results">
+        {% if query %}
+            <p class="search-results-info">'{{ query }}'에 대한 검색 결과 ({{ users.count }}개)</p>
+            {% if users %}
+                {% for user_result in users %}
+                    <div class="user-list-item">
+                        <a href="{% url 'user_profile' username=user_result.username %}">
+                            {% if user_result.profile_picture %}
+                                <img src="{{ user_result.profile_picture.url }}" alt="{{ user_result.username }}">
+                            {% else %}
+                                <img src="{% static 'main/img/user1.png' %}" alt="{{ user_result.username }}">
+                            {% endif %}
+                        </a>
+                        <div class="user-list-details">
+                            <a href="{% url 'user_profile' username=user_result.username %}">
+                                <div class="name">{{ user_result.name }}</div>
+                                <div class="username">@{{ user_result.username }}</div>
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>검색 결과가 없습니다.</p>
+            {% endif %}
+        {% else %}
+            <p>검색어를 입력하여 사용자를 찾아보세요.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
