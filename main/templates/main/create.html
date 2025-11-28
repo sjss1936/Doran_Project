@@ -1,12 +1,21 @@
 {% extends 'main/base.html' %}
 
 {% block content %}
-<div class="form-container">
-    <h2>새 게시물 만들기</h2>
-    <form method="post" enctype="multipart/form-data">
+<div class="create-post-container">
+    <div class="create-post-header">
+        <h2>새 게시물 만들기</h2>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="create-post-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">게시</button>
+        <div class="form-group">
+            <label for="{{ form.image.id_for_label }}">이미지</label>
+            {{ form.image }}
+        </div>
+        <div class="form-group">
+            <label for="{{ form.caption.id_for_label }}">문구</label>
+            {{ form.caption }}
+        </div>
+        <button type="submit" class="btn btn-primary">게시</button>
     </form>
 </div>
 {% endblock %}

@@ -1,18 +1,17 @@
 ﻿{% extends 'main/base.html' %}
 ﻿{% load static %}
-﻿{% load main_filters %}
-﻿
+﻿{% load main_filters %}﻿
 ﻿{% block content %}
 ﻿<div class="stories">
-    {% for story_user in stories %}
-    <div class="story">
-        <a href="{% url 'user_profile' username=story_user.username %}">
-            <img class="story-image" src="{% if story_user.profile_picture %}{{ story_user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ story_user.username }}">
-            <span>{{ story_user.username }}</span>
-        </a>
-    </div>
-    {% endfor %}
-</div>
+﻿    {% for story_user in stories %}
+﻿    <div class="story">
+﻿        <a href="{% url 'user_profile' username=story_user.username %}">
+﻿            <img class="story-image" src="{% if story_user.profile_picture %}{{ story_user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="{{ story_user.username }}">
+﻿            <span>{{ story_user.username }}</span>
+﻿        </a>
+﻿    </div>
+﻿    {% endfor %}
+﻿</div>
 ﻿<div class="feed">
 ﻿    {% for post in posts %}
 ﻿    <div class="post">
@@ -62,8 +61,7 @@
 ﻿        </div>
 ﻿    </div>
 ﻿    {% endfor %}
-﻿</div>
-﻿
+﻿</div>﻿
 ﻿<script>
 ﻿    document.querySelectorAll('.like-btn').forEach(item => {
 ﻿        item.addEventListener('click', event => {

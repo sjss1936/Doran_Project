@@ -138,6 +138,13 @@ img.profile-picture {
     font-weight: 600;
 }
 
+.actions {
+    display: flex;
+    justify-content: flex-start; /* Align icons to the left */
+    gap: 15px; /* Space between icons */
+    margin-bottom: 10px;
+}
+
 .post-header span {
     margin-left: 10px;
 }
@@ -166,6 +173,14 @@ img.profile-picture {
     justify-content: flex-start; /* Align icons to the left */
     gap: 15px; /* Space between icons */
     margin-bottom: 10px;
+}
+
+.actions a {
+    margin-right: 15px;
+}
+
+.actions a:last-child {
+    margin-right: 0;
 }
 
 .actions i {
@@ -467,4 +482,67 @@ body.messages-page {
     margin-left: 0; /* Remove margin as flex handles spacing */
     flex-grow: 1; /* Allow main-content to fill remaining width */
     width: auto; /* Let flexbox determine width */
+}
+
+/* Create Post Page Styles */
+.create-post-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #dbdbdb;
+    border-radius: 3px;
+}
+
+.create-post-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #efefef;
+}
+
+.create-post-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #262626;
+}
+
+.create-post-form .form-group {
+    margin-bottom: 20px;
+}
+
+.create-post-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.create-post-form input[type="file"],
+.create-post-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #dbdbdb;
+    border-radius: 3px;
+    background-color: #fafafa;
+}
+
+.create-post-form textarea {
+    height: 120px;
+    resize: vertical;
+}
+
+.create-post-form .btn-primary {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 3px;
+    background-color: #FBC02D;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.create-post-form .btn-primary:hover {
+    background-color: #E6A700;
 }
