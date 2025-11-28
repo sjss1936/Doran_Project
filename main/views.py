@@ -32,12 +32,8 @@ def check_username(request):
     return JsonResponse(data)
 
 def index(request):
-<<<<<<< HEAD
-    posts = Post.objects.select_related('user').all().order_by('-created_at')
-    stories = []
-=======
     posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
->>>>>>> 3c24863e3c8e52ff6e82d9daee11e487ba67b58a
+    stories = []
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
