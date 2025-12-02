@@ -1,0 +1,96 @@
+body {
+    background-color: #fafafa;
+}
+
+.edit-profile-container {
+    background-color: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    padding: 40px;
+    max-width: 600px;
+    margin: 40px auto;
+}
+
+.edit-profile-container h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #262626;
+    text-align: center;
+}
+
+.edit-profile-form .form-group {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start; /* Align items to the top */
+}
+
+.edit-profile-form .form-group label {
+    width: 120px; /* Give labels a fixed width */
+    font-weight: 600;
+    color: #262626;
+    padding-top: 10px; /* Align with the input box text */
+    flex-shrink: 0;
+}
+
+.edit-profile-form .form-group .input-wrapper {
+    flex-grow: 1; /* Allow input area to take remaining space */
+}
+
+
+.edit-profile-form input[type="text"],
+.edit-profile-form input[type="email"],
+.edit-profile-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #dbdbdb;
+    border-radius: 4px;
+    background-color: #fafafa;
+    box-sizing: border-box; /* Ensure padding doesn't affect width */
+}
+
+.edit-profile-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.profile-pic-preview-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-pic-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.edit-profile-form button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #0095f6;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.edit-profile-form button:hover {
+    background-color: #1877f2;
+}
+
+.current-file-name a {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block; /* Required for text-overflow to work correctly */
+    max-width: 100%; /* Ensure it respects parent width */
+}
+
+.profile-picture-input {
+    word-break: break-all;
+}

@@ -23,6 +23,8 @@ urlpatterns = [
     
     # --- Profile URLs (order is important) ---
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<str:username>/replies/', views.user_replies, name='user_replies'),
+    path('profile/<str:username>/likes/', views.user_likes, name='user_likes'),
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
     path('profile/<str:username>/follow/', views.follow_toggle, name='follow_toggle'),
     path('profile/', views.profile, name='profile'), 

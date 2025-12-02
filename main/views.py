@@ -32,15 +32,13 @@ def check_username(request):
     return JsonResponse(data)
 
 def index(request):
-<<<<<<< HEAD
     posts = Post.objects.select_related('user').all().order_by('-created_at')
     stories = []
     posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
 
-=======
     posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
     stories = []
->>>>>>> 98842568b5119d9a3133178630562b37cf7ef907
+
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
@@ -235,6 +233,43 @@ def user_profile(request, username):
     }
     return render(request, 'main/profile.html', context)
 
+
+@login_required
+def user_replies(request, username):
+    user = get_object_or_404(User, username=username)
+    comments = Comment.objects.filter(user=user).select_related('post', 'post__user').order_by('-created_at')
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'main/partials/user_replies_content.html', {'comments': comments})
+
+    # This view is intended for AJAX requests to dynamically load replies.
+    # A non-AJAX request could redirect or show an error. For now, we'll
+    # assume it's only called via JS on the profile page.
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def user_likes(request, username):
+    user = get_object_or_404(User, username=username)
+    
+    # Corrected filter to use the related_name 'likes' from the Like model
+    liked_posts = Post.objects.filter(likes__user=user).select_related('user').order_by('-created_at')
+
+    # This view is for AJAX requests to dynamically load liked posts
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Annotate posts with user_has_liked for the current request.user if authenticated
+        if request.user.is_authenticated:
+            user_likes_annotation = Like.objects.filter(
+                post=OuterRef('pk'),
+                user=request.user
+            )
+            liked_posts = liked_posts.annotate(user_has_liked=Exists(user_likes_annotation))
+
+        return render(request, 'main/partials/user_likes_content.html', {'posts': liked_posts})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+
 @login_required
 def follow_toggle(request, username):
     if request.method == 'POST':
@@ -285,7 +320,6 @@ def edit_profile(request):
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Profile updated successfully.')
             return redirect('profile')
     else:
         form = ProfileEditForm(instance=request.user)

@@ -1,0 +1,15 @@
+{% load main_filters %}
+{% for post in posts %}
+<div class="liked-item" style="padding: 15px; border-bottom: 1px solid #dbdbdb;">
+    <p style="font-size: 16px; color: #262626;">
+        <a href="{% url 'user_profile' username=post.user.username %}" style="text-decoration: none; color: #00376b; font-weight: bold;">@{{ post.user.username }}</a>님의 게시물을 좋아합니다.
+    </p>
+    <div style="font-size: 14px; color: #8e8e8e; margin-top: 5px;">
+        게시일: {{ post.created_at|date:"Y년 m월 d일" }}
+    </div>
+</div>
+{% empty %}
+<div style="text-align: center; padding: 40px; color: #8e8e8e;">
+    <p>아직 '좋아요'한 게시물이 없습니다.</p>
+</div>
+{% endfor %}

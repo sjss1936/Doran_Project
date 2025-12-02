@@ -1,0 +1,22 @@
+{% load main_filters %}
+{% for comment in comments %}
+<div class="reply-item" style="padding: 15px; border-bottom: 1px solid #dbdbdb;">
+    <div class="reply-context" style="font-size: 14px; color: #8e8e8e; margin-bottom: 5px;">
+        <p>
+            <a href="{% url 'user_profile' username=comment.post.user.username %}" style="text-decoration: none; color: #00376b; font-weight: bold;">@{{ comment.post.user.username }}</a>님의 게시물에 단 댓글
+        </p>
+    </div>
+    <div class="reply-content" style="margin-bottom: 10px;">
+        <p style="font-size: 16px; color: #262626;">{{ comment.text }}</p>
+    </div>
+    <div class="reply-meta" style="font-size: 14px; color: #8e8e8e;">
+        <span>{{ comment.created_at|time_ago }}</span>
+        {# A link to the post would be ideal here if a post detail page exists #}
+        {# <a href="{% url 'post_detail' post_id=comment.post.id %}">View Post</a> #}
+    </div>
+</div>
+{% empty %}
+<div style="text-align: center; padding: 40px; color: #8e8e8e;">
+    <p>아직 답글을 단 게시물이 없습니다.</p>
+</div>
+{% endfor %}
