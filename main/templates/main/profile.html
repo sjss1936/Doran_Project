@@ -26,7 +26,38 @@
         background-color: #efefef;
     }
     .profile-header {
-        padding-top: 40px; /* Adjust this value as needed */
+        padding-top: 0; /* Remove top padding as it's now handled by header-content */
+    }
+    .profile-header-content {
+        position: relative;
+        padding: 20px;
+        padding-top: 80px; /* Make space for the overlapping profile picture */
+        min-height: 200px; /* Ensure container has enough height for positioned elements */
+    }
+    .profile-picture-wrapper {
+        position: absolute;
+        top: 40px; /* Move the picture down */
+        left: 20px;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid white; /* Optional: adds a nice border */
+        background: #fff;
+    }
+    .profile-picture-x {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .user-details-x {
+        /* No padding-left here */
+    }
+    .indented-details {
+        padding-left: 160px; /* Indent the bio section */
+    }
+    .indented-details h1 {
+        margin-top: -85px; /* Move the name up even more */
     }
 </style>
 {% endblock %}
@@ -44,9 +75,11 @@
                 <img class="profile-picture-x" src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="Profile Picture">
             </div>
                             <div class="user-details-x">
-                                <h1>{{ user.name }}</h1>
-                                <p class="username-handle">@{{ user.username }}</p>
-                                <p class="user-bio">{{ user.bio|default:"여기에 자기소개를 넣어주세요." }}</p>
+                                <div class="indented-details">
+                                    <h1>{{ user.name }}</h1>
+                                    <p class="username-handle">@{{ user.username }}</p>
+                                    <p class="user-bio">{{ user.bio|default:"여기에 자기소개글을 넣어주세요." }}</p>
+                                </div>
                                 <div class="follow-stats">
                                     <span id="following-count"><b>{{ following_count }}</b> 팔로잉</span>
                                     <span id="follower-count"><b>{{ follower_count }}</b> 팔로워</span>
@@ -64,10 +97,9 @@
                             </div>        </div>
         <div class="profile-nav-x">
             <ul>
-                <li><a href="#" class="active">게시물</a></li>
-                <li><a href="#">답글</a></li>
-                <li><a href="#">미디어</a></li>
-                <li><a href="#">좋아요</a></li>
+                <li><a href="#" class="active" data-tab="posts">게시물</a></li>
+                <li><a href="#" data-tab="replies">답글</a></li>
+                <li><a href="#" data-tab="likes">좋아요</a></li>
             </ul>
         </div>
     </div>
@@ -78,7 +110,7 @@
                 <div class="post">
                     <div class="post-header">
                         <a href="{% url 'user_profile' username=post.user.username %}">
-                            <img src="{% static 'main/img/user1.png' %}" alt="User Profile Picture">
+                            <img src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="User Profile Picture">
                         </a>
                         <span>{{ post.user.username }}</span>
                     </div>
@@ -91,8 +123,8 @@
                                 <img src="{% if post.user_has_liked %}{% static 'main/img/clicklike.png' %}{% else %}{% static 'main/img/like.png' %}{% endif %}" alt="좋아요" class="action-icon">
                             </a>
                             <a href="#"><img src="{% static 'main/img/comment.png' %}" alt="댓글" class="action-icon"></a>
-                            <a href="#"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
-Â                      </div>
+                            <a href="{% url 'conversation' username=post.user.username %}"><img src="{% static 'main/img/send.png' %}" alt="공유" class="action-icon"></a>
+                        </div>
                         <div class="likes" id="likes-count-{{ post.id }}">
                             <span>{{ post.likes.count }} likes</span>
                         </div>
@@ -110,121 +142,199 @@
                             {% endif %}
                         </div>
                         <div class="comment-form">
-M                           <form action="{% url 'add_comment' post.id %}" method="post">
+                            <form action="{% url 'add_comment' post.id %}" method="post">
                                 {% csrf_token %}
-                                <input type="text" name="text" placeholder="댓글 달기...">
+                                <input type="text" name="text" placeholder="댓글 달기..." id="comment-input-{{ post.id }}">
                                 <button type="submit">게시</button>
                             </form>
                         </div>
                     </div>
                 </div>
-D               {% endfor %}
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Like button functionality
-    document.querySelectorAll('.like-btn').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.dataset.postId;
-            let likeIcon = event.currentTarget.querySelector('img');
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const postsTab = document.querySelector('[data-tab="posts"]');
+        const repliesTab = document.querySelector('[data-tab="replies"]');
+        const likesTab = document.querySelector('[data-tab="likes"]');
+        const profileContent = document.querySelector('.profile-posts');
+        const followBtn = document.getElementById('follow-btn');
+        const navLinks = document.querySelectorAll('.profile-nav-x a');
 
-            fetch(`/post/${postId}/like/`, {
-                method: 'GET', // Like is a GET request in the current implementation
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
-                if (data.liked) {
-                    likeIcon.src = "{% static 'main/img/clicklike.png' %}";
-                } else {
-                    likeIcon.src = "{% static 'main/img/like.png' %}";
-                }
+        // --- State ---
+        const originalPostsHTML = profileContent.innerHTML; // Store original posts
+        const repliesUrl = `/profile/{{ user.username }}/replies/`;
+        const likesUrl = `/profile/{{ user.username }}/likes/`;
+
+        // --- Functions ---
+
+        function attachPostEventListeners() {
+            // Like button functionality
+            document.querySelectorAll('.like-btn').forEach(item => {
+                item.addEventListener('click', event => {
+                    event.preventDefault();
+                    let postId = event.currentTarget.dataset.postId;
+                    let likeIcon = event.currentTarget.querySelector('img');
+
+                    fetch(`/post/${postId}/like/`, {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById(`likes-count-${postId}`).innerText = `${data.likes_count} likes`;
+                        if (data.liked) {
+                            likeIcon.src = "{% static 'main/img/clicklike.png' %}";
+                        } else {
+                            likeIcon.src = "{% static 'main/img/like.png' %}";
+                        }
+                    });
+                });
             });
-        });
-    });
 
-    // View all comments functionality
-    document.querySelectorAll('.view-all-comments').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.dataset.postId;
-            let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
-            if (hiddenCommentsDiv.style.display === 'none') {
-                hiddenCommentsDiv.style.display = 'block';
-                event.currentTarget.innerText = '댓글 숨기기';
-            } else {
-                hiddenCommentsDiv.style.display = 'none';
-                event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount}개)`;
-            }
-        });
-    });
+            // View all comments functionality
+            document.querySelectorAll('.view-all-comments').forEach(item => {
+                item.addEventListener('click', event => {
+                    event.preventDefault();
+                    let postId = event.currentTarget.dataset.postId;
+                    let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
+                    if (hiddenCommentsDiv.style.display === 'none') {
+                        hiddenCommentsDiv.style.display = 'block';
+                        event.currentTarget.innerText = '댓글 숨기기';
+                    } else {
+                        hiddenCommentsDiv.style.display = 'none';
+                        event.currentTarget.innerText = `모든 댓글 보기 (${event.currentTarget.dataset.commentCount || ''}개)`;
+                    }
+                });
+            });
 
-    // Comment link functionality
-    document.querySelectorAll('.post-actions a:nth-child(2)').forEach(item => {
-        item.addEventListener('click', event => {
-            event.preventDefault();
-            let postId = event.currentTarget.closest('.post').querySelector('.like-btn').dataset.postId;
-            let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
-            if (viewAllCommentsLink) {
-                viewAllCommentsLink.click();
-            }
-        });
-    });
+            // Comment link functionality
+            document.querySelectorAll('.post-actions a:nth-child(2)').forEach(item => {
+                item.addEventListener('click', event => {
+                    event.preventDefault();
+                    let postElement = event.currentTarget.closest('.post');
+                    if (!postElement) return;
 
-    // Follow button functionality
-    const followBtn = document.getElementById('follow-btn');
-    if (followBtn) {
-        followBtn.addEventListener('click', event => {
-            event.preventDefault();
-            const username = event.currentTarget.dataset.username;
-            
-            // Standard Django function to get CSRF token from cookies
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
+                    let postId = postElement.querySelector('.like-btn').dataset.postId;
+                    
+                    let viewAllCommentsLink = document.querySelector(`.view-all-comments[data-post-id="${postId}"]`);
+                    if (viewAllCommentsLink) {
+                        let hiddenCommentsDiv = document.getElementById(`hidden-comments-${postId}`);
+                        if (hiddenCommentsDiv && hiddenCommentsDiv.style.display === 'none') {
+                            viewAllCommentsLink.click();
                         }
                     }
-                }
-                return cookieValue;
-            }
-            const csrftoken = getCookie('csrftoken');
 
-            fetch(`/profile/${username}/follow/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    const followBtn = document.getElementById('follow-btn');
-                    const followerCountSpan = document.getElementById('follower-count').querySelector('b');
-                    
-                    if (data.is_following) {
-                        followBtn.innerText = '팔로우 취소';
-                    } else {
-                        followBtn.innerText = '팔로우';
+                    let commentInput = document.getElementById(`comment-input-${postId}`);
+                    if (commentInput) {
+                        commentInput.focus();
                     }
-                    followerCountSpan.innerText = data.follower_count;
-                }
+                });
             });
-        });
-    }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                    }
+                }
+            return cookieValue;
+        }
+
+        function setActiveTab(clickedTab) {
+            navLinks.forEach(link => link.classList.remove('active'));
+            clickedTab.classList.add('active');
+        }
+
+        // --- Event Listeners ---
+
+        if (repliesTab) {
+            repliesTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveTab(repliesTab);
+                profileContent.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                fetch(repliesUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    profileContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching replies:', error);
+                    profileContent.innerHTML = '<div style="text-align: center; padding: 40px; color: red;">Failed to load replies.</div>';
+                });
+            });
+        }
+
+        if (likesTab) {
+            likesTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveTab(likesTab);
+                profileContent.innerHTML = '<div style="text-align: center; padding: 40px;">Loading...</div>';
+                fetch(likesUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    profileContent.innerHTML = html;
+                    // No need to attach post event listeners as it's a text-based list now
+                })
+                .catch(error => {
+                    console.error('Error fetching liked posts:', error);
+                    profileContent.innerHTML = '<div style="text-align: center; padding: 40px; color: red;">Failed to load liked posts.</div>';
+                });
+            });
+        }
+
+        if (postsTab) {
+            postsTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                setActiveTab(postsTab);
+                profileContent.innerHTML = originalPostsHTML;
+                attachPostEventListeners(); // Re-attach listeners to the restored content
+            });
+        }
+
+        if (followBtn) {
+            followBtn.addEventListener('click', event => {
+                event.preventDefault();
+                const username = event.currentTarget.dataset.username;
+                const csrftoken = getCookie('csrftoken');
+
+                fetch(`/profile/${username}/follow/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        const followerCountSpan = document.getElementById('follower-count').querySelector('b');
+                        followBtn.innerText = data.is_following ? '팔로우 취소' : '팔로우';
+                        followerCountSpan.innerText = data.follower_count;
+                    }
+                });
+            });
+        }
+        
+        // --- Initialisation ---
+        attachPostEventListeners();
+    });
 </script>
 {% endblock %}

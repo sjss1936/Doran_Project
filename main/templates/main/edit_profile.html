@@ -1,17 +1,67 @@
 {% extends 'main/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'main/css/edit_profile.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="form-container">
+<div class="edit-profile-container">
     <h2>프로필 수정</h2>
+
     {% if messages %}
         {% for message in messages %}
-            <p style="color: green;">{{ message }}</p>
+            <p style="color: green; text-align: center; margin-bottom: 20px;">{{ message }}</p>
         {% endfor %}
     {% endif %}
-    <form method="post" enctype="multipart/form-data">
+
+    <form method="post" enctype="multipart/form-data" class="edit-profile-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">저장</button>
+
+        <div class="form-group">
+            <label for="{{ form.profile_picture.id_for_label }}">프로필 사진</label>
+            <div class="input-wrapper">
+                <div class="profile-pic-preview-wrapper">
+                    <img src="{% if user.profile_picture %}{{ user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="Profile Preview" class="profile-pic-preview">
+                    <div class="profile-picture-input">
+                        <strong>{{ user.username }}</strong><br>
+                        {{ form.profile_picture }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}">이름</label>
+            <div class="input-wrapper">
+                {{ form.name }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.bio.id_for_label }}">자기소개</label>
+            <div class="input-wrapper">
+                {{ form.bio }}
+            </div>
+        </div>
+
+
+
+        <div class="form-group">
+            <label for="{{ form.cover_image.id_for_label }}">커버 이미지</label>
+            <div class="input-wrapper">
+                {{ form.cover_image }}
+
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label></label> <!-- Empty label for alignment -->
+            <div class="input-wrapper">
+                <button type="submit">저장</button>
+            </div>
+        </div>
+
     </form>
 </div>
 {% endblock %}

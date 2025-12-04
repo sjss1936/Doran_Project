@@ -13,6 +13,8 @@ import json
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # Local application imports
 from .forms import CustomUserCreationForm, PostForm, ProfileEditForm
@@ -31,13 +33,31 @@ def check_username(request):
 
 def index(request):
     posts = Post.objects.select_related('user').all().order_by('-created_at')
+    stories = []
+    posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
+
+    posts = Post.objects.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
+    stories = []
+
     if request.user.is_authenticated:
         user_likes = Like.objects.filter(
             post=OuterRef('pk'),
             user=request.user
         )
         posts = posts.annotate(user_has_liked=Exists(user_likes))
-    context = {'posts': posts}
+        
+        # Get users the current user is following
+        following_users = User.objects.filter(followers__from_user=request.user)
+        
+        # Add the current user to the stories for debugging
+        stories = list(following_users)
+        if request.user not in stories:
+            stories.insert(0, request.user)
+
+    context = {
+        'posts': posts,
+        'stories': stories
+    }
     return render(request, 'main/index.html', context)
 
 def signup_view(request):
@@ -184,11 +204,18 @@ def profile(request):
 
 @login_required
 def user_profile(request, username):
-    user = get_object_or_404(User, username=username)
-    posts = user.posts.select_related('user').all().order_by('-created_at')
+    user = get_object_or_404(
+        User.objects.annotate(
+            follower_count=Count('followers', distinct=True),
+            following_count=Count('following', distinct=True)
+        ),
+        username=username
+    )
+    
+    posts = user.posts.select_related('user').prefetch_related('comments', 'likes').all().order_by('-created_at')
 
     is_following = False
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and request.user != user:
         is_following = Follow.objects.filter(from_user=request.user, to_user=user).exists()
         
         user_likes = Like.objects.filter(
@@ -197,17 +224,51 @@ def user_profile(request, username):
         )
         posts = posts.annotate(user_has_liked=Exists(user_likes))
 
-    follower_count = user.followers.count()
-    following_count = user.following.count()
-
     context = {
         'user': user,
         'posts': posts,
         'is_following': is_following,
-        'follower_count': follower_count,
-        'following_count': following_count,
+        'follower_count': user.follower_count,
+        'following_count': user.following_count,
     }
     return render(request, 'main/profile.html', context)
+
+
+@login_required
+def user_replies(request, username):
+    user = get_object_or_404(User, username=username)
+    comments = Comment.objects.filter(user=user).select_related('post', 'post__user').order_by('-created_at')
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'main/partials/user_replies_content.html', {'comments': comments})
+
+    # This view is intended for AJAX requests to dynamically load replies.
+    # A non-AJAX request could redirect or show an error. For now, we'll
+    # assume it's only called via JS on the profile page.
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def user_likes(request, username):
+    user = get_object_or_404(User, username=username)
+    
+    # Corrected filter to use the related_name 'likes' from the Like model
+    liked_posts = Post.objects.filter(likes__user=user).select_related('user').order_by('-created_at')
+
+    # This view is for AJAX requests to dynamically load liked posts
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Annotate posts with user_has_liked for the current request.user if authenticated
+        if request.user.is_authenticated:
+            user_likes_annotation = Like.objects.filter(
+                post=OuterRef('pk'),
+                user=request.user
+            )
+            liked_posts = liked_posts.annotate(user_has_liked=Exists(user_likes_annotation))
+
+        return render(request, 'main/partials/user_likes_content.html', {'posts': liked_posts})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
 
 @login_required
 def follow_toggle(request, username):
@@ -238,20 +299,6 @@ def follow_toggle(request, username):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 @login_required
-def send_message(request, username):
-    if request.method == 'POST':
-        receiver = get_object_or_404(User, username=username)
-        sender = request.user
-        data = json.loads(request.body)
-        content = data.get('content')
-
-        if content:
-            Message.objects.create(sender=sender, receiver=receiver, content=content)
-            return JsonResponse({'status': 'ok', 'message': 'Message sent.'})
-        return JsonResponse({'status': 'error', 'message': 'Message content cannot be empty.'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
-
-@login_required
 def conversation(request, username):
     other_user = get_object_or_404(User, username=username)
     
@@ -273,7 +320,6 @@ def edit_profile(request):
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Profile updated successfully.')
             return redirect('profile')
     else:
         form = ProfileEditForm(instance=request.user)
@@ -287,12 +333,20 @@ def add_comment(request, post_id):
         if text:
             comment = Comment.objects.create(user=request.user, post=post, text=text)
             if post.user != request.user:
-                Notification.objects.create(
+                notification = Notification.objects.create(
                     user=post.user,
                     created_by=request.user,
                     notification_type='comment',
                     post=post,
                     comment=comment
+                )
+                # Broadcast the notification
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{post.user.id}",
+                    {
+                        "type": "unread_notification_count_update",
+                    }
                 )
     return redirect('index')
 
@@ -307,11 +361,19 @@ def like_post(request, post_id):
     else:
         liked = True
         if post.user != request.user:
-            Notification.objects.create(
+            notification = Notification.objects.create(
                 user=post.user,
                 created_by=request.user,
                 notification_type='like',
                 post=post
+            )
+            # Broadcast the notification
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"user_{post.user.id}",
+                {
+                    "type": "unread_notification_count_update",
+                }
             )
             
     return JsonResponse({'likes_count': post.likes.count(), 'liked': liked})

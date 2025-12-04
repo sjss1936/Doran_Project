@@ -7,7 +7,6 @@ urlpatterns = [
     path('search/', views.search, name='search'),
     path('messages/', views.messages_view, name='messages'),
     path('messages/<str:username>/', views.conversation, name='conversation'),
-    path('messages/<str:username>/send/', views.send_message, name='send_message'),
     path('notifications/', views.notifications, name='notifications'),
     path('create/', views.create, name='create'),
     
@@ -24,6 +23,8 @@ urlpatterns = [
     
     # --- Profile URLs (order is important) ---
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<str:username>/replies/', views.user_replies, name='user_replies'),
+    path('profile/<str:username>/likes/', views.user_likes, name='user_likes'),
     path('profile/<str:username>/', views.user_profile, name='user_profile'),
     path('profile/<str:username>/follow/', views.follow_toggle, name='follow_toggle'),
     path('profile/', views.profile, name='profile'), 
