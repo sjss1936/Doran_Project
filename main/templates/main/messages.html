@@ -25,14 +25,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="messages-container">
+<div class="messages-container" id="messages-container">
     <div class="conversations-list">
         <div class="list-header">
             <h2>Messages</h2>
         </div>
         <div class="user-list">
             {% for conversation in conversations %}
-                <a href="{% url 'conversation' username=conversation.other_user.username %}" class="user-item">
+                <a href="{% url 'conversation' username=conversation.other_user.username %}" class="user-item conversation-link">
                     {% if conversation.other_user.profile_picture %}
                         <img src="{{ conversation.other_user.profile_picture.url }}" alt="{{ conversation.other_user.username }}">
                     {% else %}
@@ -59,77 +59,101 @@
         {% if other_user %}
             <div id="chat-content" class="chat-content">
                 <div class="chat-header">
-                    {% if other_user.profile_picture %}
-                        <img src="{{ other_user.profile_picture.url }}" alt="{{ other_user.username }}" id="chat-header-img">
-                    {% else %}
-                        <img src="{% static 'main/img/user1.png' %}" alt="{{ other_user.username }}" id="chat-header-img">
-                    {% endif %}
-                    <strong id="chat-header-username">{{ other_user.username }}</strong>
+                    <span id="back-to-list" class="back-to-conversations" onclick="window.location.href='{% url 'messages' %}'">&lt;</span>
+                    <div class="chat-header-info">
+                        {% if other_user.profile_picture %}
+                            <img src="{{ other_user.profile_picture.url }}" alt="{{ other_user.username }}" id="chat-header-img">
+                        {% else %}
+                            <img src="{% static 'main/img/user1.png' %}" alt="{{ other_user.username }}" id="chat-header-img">
+                        {% endif %}
+                        <strong id="chat-header-username">{{ other_user.username }}</strong>
+                    </div>
                 </div>
                 <div id="chat-log" class="chat-log">
                     {% for message in messages %}
                         <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
-                            <div>{{ message.content }}</div>
-                            <small>{{ message.timestamp|date:"H:i" }}</small>
+                             {% if message.sender != request.user %}
+                                <img src="{{ other_user.profile_picture.url|default_if_none:'' }}" class="message-profile-pic" alt="">
+                            {% endif %}
+                            <div>
+                                <p>{{ message.content }}</p>
+                                <span class="timestamp">{{ message.timestamp|date:"H:i" }}</span>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
-                <div class="chat-input-form">
+                <form id="chat-input-form" class="chat-input-form">
                     <input id="chat-message-input" type="text" placeholder="Message...">
-                    <button id="chat-message-submit" data-username="{{ other_user.username }}">Send</button>
-                </div>
+                    <button id="chat-message-submit" type="submit">Send</button>
+                </form>
             </div>
         {% else %}
             <div id="chat-placeholder" class="chat-placeholder">
                 <img src="{% static 'main/img/message.png' %}" alt="Messages">
                 <h2>Your Messages</h2>
                 <p>Send private photos and messages to a friend or group.</p>
-                <button class="btn btn-primary">Send Message</button>
             </div>
         {% endif %}
     </div>
     
     <script>
-        const chatWindow = document.querySelector('.chat-window');
-        const chatLog = document.getElementById('chat-log');
-        const chatMessageInput = document.getElementById('chat-message-input');
-        const chatMessageSubmit = document.getElementById('chat-message-submit');
-        const otherUserUsername = "{{ other_user.username }}";
-        const currentUserUsername = "{{ request.user.username }}";
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Mobile view logic ---
+        const messagesContainer = document.getElementById('messages-container');
+        const isChatActive = {{ other_user|yesno:'true,false' }};
 
-        // Scroll to the bottom of the chat log on page load
-        if (chatLog) {
-            chatLog.scrollTop = chatLog.scrollHeight;
+        if (window.innerWidth <= 768 && isChatActive) {
+            messagesContainer.classList.add('chat-active');
         }
 
-        if (otherUserUsername) {
+        // --- WebSocket logic ---
+        if (isChatActive) {
+            const chatLog = document.getElementById('chat-log');
+            const chatMessageInput = document.getElementById('chat-message-input');
+            const chatMessageSubmit = document.getElementById('chat-message-submit');
+            const chatForm = document.getElementById('chat-input-form');
+            
+            const otherUserUsername = "{{ other_user.username }}";
+            const currentUserUsername = "{{ request.user.username }}";
+            const otherUserProfilePic = "{{ other_user.profile_picture.url|default_if_none:'' }}";
+
+            // Scroll to the bottom of the chat log on page load
+            if (chatLog) {
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+
             const chatSocket = new WebSocket(
-                'ws://'
-                + window.location.host
-                + '/ws/chat/'
-                + otherUserUsername
-                + '/'
+                'ws://' + window.location.host + '/ws/chat/' + otherUserUsername + '/'
             );
 
             chatSocket.onmessage = function(e) {
                 const data = JSON.parse(e.data);
-                const messageDiv = document.createElement('div');
-                const messageInnerDiv = document.createElement('div');
-                const timestampSmall = document.createElement('small');
-
-                messageInnerDiv.textContent = data.message;
-                timestampSmall.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                messageDiv.appendChild(messageInnerDiv);
-                messageDiv.appendChild(timestampSmall);
+                
+                let messageHTML = '';
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 if (data.sender === currentUserUsername) {
-                    messageDiv.classList.add('message', 'sent');
+                    messageHTML = `
+                        <div class="message sent">
+                            <div>
+                                <p>${data.message}</p>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                        </div>
+                    `;
                 } else {
-                    messageDiv.classList.add('message', 'received');
+                    messageHTML = `
+                        <div class="message received">
+                            <img src="${otherUserProfilePic}" class="message-profile-pic" alt="">
+                            <div>
+                                <p>${data.message}</p>
+                                <span class="timestamp">${timestamp}</span>
+                            </div>
+                        </div>
+                    `;
                 }
                 
-                chatLog.appendChild(messageDiv);
+                chatLog.innerHTML += messageHTML;
                 chatLog.scrollTop = chatLog.scrollHeight;
             };
 
@@ -138,13 +162,9 @@
             };
 
             chatMessageInput.focus();
-            chatMessageInput.onkeyup = function(e) {
-                if (e.key === 'Enter') {  // enter, return
-                    chatMessageSubmit.click();
-                }
-            };
-
-            chatMessageSubmit.onclick = function(e) {
+            
+            chatForm.onsubmit = function(e) {
+                e.preventDefault(); // Prevent form from reloading the page
                 const message = chatMessageInput.value.trim();
                 if (message) {
                     chatSocket.send(JSON.stringify({
@@ -154,6 +174,7 @@
                 }
             };
         }
+    });
     </script>
     
 </div>

@@ -271,36 +271,95 @@
     color: #b2dffc;
 }
 
-/* Responsive Design */
+/* Responsive Design for Messages Page */
+
+/* 
+  Mobile Experience (max-width: 768px):
+  - The layout transitions to a single-column view.
+  - By default, only the conversations list is visible.
+  - To show the chat window, JavaScript should add the 'chat-active' class 
+    to the '.messages-container' when a conversation is selected.
+*/
 @media (max-width: 768px) {
     .messages-container {
-        flex-direction: column;
+        overflow-x: hidden; /* Prevent horizontal scroll */
+        position: relative;
     }
 
     .conversations-list {
         width: 100%;
-        height: auto; /* Adjust height automatically */
-        max-height: 40%; /* Limit height to 40% of the screen */
+        height: 100%;
         border-right: none;
-        border-bottom: 1px solid #dbdbdb;
+        position: absolute;
+        top: 0;
+        left: 0;
+        transition: transform 0.3s ease-in-out;
+        z-index: 2;
+        background-color: #fff;
     }
 
     .chat-window {
         width: 100%;
-    }
-
-    /* Hide placeholder on mobile or simplify it */
-    .chat-placeholder {
-        display: none; /* Or style it differently for mobile */
-    }
-
-    /* Ensure chat content is visible if a chat is active */
-    .chat-content {
         height: 100%;
+        position: absolute;
+        top: 0;
+        left: 100%; /* Position off-screen to the right */
+        transition: transform 0.3s ease-in-out;
+        z-index: 3;
+        background-color: #fff;
     }
 
-.chat-input-form {
-        left: 180px; /* 메인 사이드바 너비(180px)만큼 띄움 */
-        width: calc(100% - 180px); /* 전체 너비에서 사이드바 너비(180px)를 뺌 */
+    /* When a chat is active, move both containers to the left */
+    .messages-container.chat-active .conversations-list {
+        transform: translateX(-100%);
+    }
+    .messages-container.chat-active .chat-window {
+        transform: translateX(-100%);
+    }
+
+    /* Chat Header: Add a back button */
+    .chat-header {
+        position: relative;
+    }
+    .back-to-conversations {
+        display: block; /* Hidden by default on desktop */
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 24px; /* Larger tap target */
+        color: #262626;
+        cursor: pointer;
+    }
+
+    .chat-header .chat-header-info {
+        padding-left: 30px; /* Make space for back button */
+    }
+
+
+    /* Chat Log and Input Form adjustments */
+    .chat-log {
+        padding-bottom: 70px; /* Space for the input form */
+    }
+
+    .chat-input-form {
+        position: absolute; /* Position within the .chat-window */
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px;
+        z-index: 4;
+    }
+
+    .chat-placeholder {
+        display: none; /* Placeholder not needed in this mobile flow */
     }
 }
+
+/* Hide back button on larger screens */
+@media (min-width: 769px) {
+    .back-to-conversations {
+        display: none;
+    }
+}
+

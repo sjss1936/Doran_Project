@@ -85,3 +85,22 @@
     font-weight: 600;
     text-decoration: none;
 }
+
+@media (max-width: 480px) {
+    body.login-body {
+        background-color: #FFFFFF;
+    }
+    .form-wrapper,
+    .signup-link-wrapper {
+        border: none;
+        background-color: transparent;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-left: 20px;
+        padding-right: 20px;
+        max-width: 100%;
+    }
+    .form-wrapper {
+        padding-top: 20px;
+    }
+}
