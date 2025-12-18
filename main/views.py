@@ -377,3 +377,30 @@ def like_post(request, post_id):
             )
             
     return JsonResponse({'likes_count': post.likes.count(), 'liked': liked})
+
+@login_required
+def edit_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if post.user != request.user:
+        return redirect('index')  # Or show an error message
+
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES, instance=post)
+        if form.is_valid():
+            form.save()
+            return redirect('index')
+    else:
+        form = PostForm(instance=post)
+
+    return render(request, 'main/edit_post.html', {'form': form, 'post': post})
+
+
+@login_required
+def delete_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if post.user == request.user:
+        post.delete()
+        return redirect('index')
+    else:
+        # Optionally, add a message for the user
+        return redirect('index')

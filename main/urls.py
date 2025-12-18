@@ -18,6 +18,8 @@ urlpatterns = [
     path('activate/<str:uidb64>/<str:token>/', views.activate, name='activate'), 
 
     # --- Post and Profile URLs ---
+    path('post/<int:post_id>/edit/', views.edit_post, name='edit_post'),
+    path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
     path('post/<int:post_id>/comment/', views.add_comment, name='add_comment'),
     path('post/<int:post_id>/like/', views.like_post, name='like_post'),
     

@@ -45,6 +45,62 @@
             margin: 0; /* Remove default paragraph margin */
             font-size: 14px;
         }
+        .post-options-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            margin-left: auto;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 0;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 12px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .modal-content a {
+            display: block;
+            padding: 12px;
+            text-decoration: none;
+            color: black;
+            border-bottom: 1px solid #dbdbdb;
+        }
+        .modal-content a:last-child {
+            border-bottom: none;
+        }
+        .modal-content a.delete {
+            color: red;
+            font-weight: bold;
+        }
+        .modal-content a:hover {
+            background-color: #f2f2f2;
+        }
+        .close-btn {
+            display: block;
+            padding: 12px;
+            text-decoration: none;
+            color: black;
+            border-top: 1px solid #dbdbdb;
+        }
+        .close-btn:hover {
+            background-color: #f2f2f2;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>

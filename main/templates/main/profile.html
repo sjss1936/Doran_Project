@@ -113,6 +113,16 @@
                             <img src="{% if post.user.profile_picture %}{{ post.user.profile_picture.url }}{% else %}{% static 'main/img/user1.png' %}{% endif %}" alt="User Profile Picture">
                         </a>
                         <span>{{ post.user.username }}</span>
+                        {% if post.user == request.user %}
+                            <button class="post-options-btn" data-post-id="{{ post.id }}">...</button>
+                            <div id="modal-{{ post.id }}" class="modal">
+                                <div class="modal-content">
+                                    <a href="{% url 'edit_post' post.id %}">수정</a>
+                                    <a href="{% url 'delete_post' post.id %}" class="delete" onclick="return confirm('정말로 이 게시물을 삭제하시겠습니까?');">삭제</a>
+                                    <a href="#" class="close-btn" data-post-id="{{ post.id }}">취소</a>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="post-image">
                         <img src="{{ post.image.url }}" alt="Post Image">
@@ -174,6 +184,30 @@
         // --- Functions ---
 
         function attachPostEventListeners() {
+            // Post options modal functionality
+            document.querySelectorAll('.post-options-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const postId = button.dataset.postId;
+                    document.getElementById(`modal-${postId}`).style.display = 'block';
+                });
+            });
+
+            document.querySelectorAll('.close-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const postId = button.dataset.postId;
+                    document.getElementById(`modal-${postId}`).style.display = 'none';
+                });
+            });
+
+            window.addEventListener('click', (e) => {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (e.target == modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
             // Like button functionality
             document.querySelectorAll('.like-btn').forEach(item => {
                 item.addEventListener('click', event => {
