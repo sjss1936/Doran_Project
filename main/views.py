@@ -174,8 +174,12 @@ def messages_view(request):
             'unread_count': p.unread_count if p.unread_count else 0
         })
 
+    # Get users the current user is following for the "New Message" modal
+    following_users = User.objects.filter(followers__from_user=user)
+
     context = {
-        'conversations': conversation_list
+        'conversations': conversation_list,
+        'following_users': following_users
     }
     return render(request, 'main/messages.html', context)
 
